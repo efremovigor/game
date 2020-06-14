@@ -2,64 +2,116 @@ document.getElementById("greet").hidden = false;
 
 document.getElementById("choose-multi").addEventListener('click', startGame);
 
+function startGame() {
+    document.getElementById("greet").hidden = true;
+    document.getElementById("game").hidden = false;
+    document.getElementById("game-canvas").hidden = false;
+
+    game.socket = new WebSocket('ws://127.0.0.1:3000/ws');
+    game.socket.onmessage = function (event) {
+        const messageText = event.data;
+        const message = JSON.parse(messageText);
+        console.log(message);
+    };
+
+    game.socket.onopen = function (e) {
+        console.log("[open] Соединение установлено");
+        console.log("Отправляем данные на сервер");
+        game.socket.send('{"type":"newPlayer","payload":{"name":"test1"}}');
+    };
+
+    game.socket.onmessage = function (event) {
+        console.log(`[message] Данные получены с сервера: ${event.data}`);
+        let response = JSON.parse(event.data);
+        if (response.type === 'SIGNAL_START_THE_GAME') {
+            game.canvas.width = response.conf.width;
+            game.canvas.height = response.conf.height;
+            game.interval = setInterval(() => gameLoop(), 100);
+        }
+        if (response.type === 'SIGNAL_INFO_THE_GAME') {
+            game.player = response.info.player
+        }
+    };
+
+    game.socket.onclose = function (event) {
+        if (event.wasClean) {
+            console.log(`[close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
+        } else {
+            // например, сервер убил процесс или сеть недоступна
+            // обычно в этом случае event.code 1006
+            console.log('[close] Соединение прервано');
+        }
+    };
+
+    game.socket.onerror = function (error) {
+        console.log(`[error] ${error.message}`);
+    };
+
+
+}
+
 let game = {};
 game.canvas = document.getElementById("game-canvas");
-game.canvas.width = 1000;
-game.canvas.height = 1000;
 game.ctx = game.canvas.getContext("2d");
+game.canvas.width = 0;
+game.canvas.height = 0;
 game.player = {
-    x: 15,
-    y: 15,
-    w: 10,
-    h: 10,
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
 };
-
 
 
 function gameLoop() {
 
     game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
+    game.ctx.fillStyle = "silver";
+    game.ctx.fillRect(0, 0, game.canvas.width, game.canvas.height);
     game.ctx.fillStyle = "green";
     game.ctx.fillRect(game.player.x, game.player.y, game.player.w, game.player.h);
 }
 
-document.addEventListener('keydown', function (event) {
-    if (event.code === 'KeyD') {
-        game.player.x += game.player.w
-    }
-    if (event.code === 'KeyS') {
-        game.player.y += game.player.h
-    }
-    if (event.code === 'KeyW') {
-        game.player.y -= game.player.h
-    }
-    if (event.code === 'KeyA') {
-        game.player.x -= game.player.w
-    }
+let keysPressed = {};
+
+document.addEventListener('keydown', (event) => {
+    keysPressed[event.code] = true;
 });
-// var conn = new WebSocket('ws://localhost:8080/echo');
-// conn.onmessage = function(e){ console.log(e.data); };
-// conn.onopen = () => conn.send('hello');
 
-let socket = new WebSocket('ws://127.0.0.1:3000/ws');
-socket.onmessage = function (event) {
-    const messageText = event.data;
-    const message = JSON.parse(messageText);
-    console.log(message);
-};
+document.addEventListener('keyup', (event) => {
+    delete keysPressed[event.code];
+});
 
-const interval = setInterval(socket.onopen = () => socket.send('hello'), 10 * 1000);
+document.addEventListener('keydown', function (event) {
+    let dir = '';
+    console.log(keysPressed);
 
-socket.onclose = function () {
-    clearInterval(interval);
-};
+    if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
+        dir = 'right';
+    }
+    if (keysPressed['KeyS'] && keysPressed['KeyS'] === true) {
+        if (dir !== '') {
+            dir += '-'
+        }
+        dir += 'down';
+    }
+    if (keysPressed['KeyW'] && keysPressed['KeyW'] === true) {
+        if (dir !== '') {
+            dir += '-'
+        }
+        dir += 'up';
+    }
+    if (keysPressed['KeyA'] && keysPressed['KeyA'] === true) {
+        if (dir !== '') {
+            dir += '-'
+        }
+        dir += 'left';
+    }
+    if (dir === '') {
+        return;
+    }
+    console.log('{"type":"command","payload":{"name":"' + dir + '"}}');
 
-function startGame(socket) {
-    document.getElementById("greet").hidden = true;
-    document.getElementById("game").hidden = false;
-    document.getElementById("game-canvas").hidden = false;
+    game.socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
 
-    game.interval = setInterval(() => gameLoop(), 100);
-    socket.send('newPlayer');
-
-}
+});

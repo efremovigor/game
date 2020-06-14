@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
@@ -26,8 +27,8 @@ type LoginJsonRequest struct {
 }
 
 type Payload struct {
-	Username string `json:"username"`
-	Code     string `json:"code"`
+	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 type ConnectionReceiver struct {
@@ -37,7 +38,7 @@ type ConnectionReceiver struct {
 	closeConnect chan int
 }
 
-func (receiver ConnectionReceiver) pushData(jsonObject interface{}) {
+func (receiver ConnectionReceiver) PushData(jsonObject interface{}) {
 	responseJson, _ := json.Marshal(jsonObject)
 	receiver.WriteChannel <- responseJson
 }
@@ -97,9 +98,9 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case <-receiver.closeConnect:
-				//if game, ok := Games[session.ID]; ok {
-				//	game.stopGame()
-				//}
+				if _, ok := Games[session.ID]; ok {
+					//game.stopGame()
+				}
 				_ = conn.Close()
 				break
 			}
@@ -111,6 +112,7 @@ func (receiver *ConnectionReceiver) handleRequest(message []byte, session *sessi
 	var request LoginJsonRequest
 	err := json.Unmarshal(message, &request)
 	if err != nil {
+		fmt.Println(string(message))
 		return
 	}
 	RequestChan <- UserRequest{Request: request, SessionId: session.ID, Receiver: receiver}
