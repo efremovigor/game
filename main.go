@@ -33,7 +33,7 @@ func handleRequest(request lib.UserRequest) {
 	}
 
 	if request.Request.Type == lib.RequestTypeNewPlayer {
-		game := &lib.Game{Player: &lib.Player{X: 15, Y: 15, W: 20, H: 20}, Connection: *playerConnection, Weight: 1000, Height: 500}
+		game := &lib.Game{Player: &lib.Player{X: 15, Y: 15, W: 20, H: 20}, Connection: *playerConnection, Weight: 800, Height: 600}
 
 		response := ResponseStartGameState{Type: lib.SignalStartTheGame, Conf: ResponseConf{Width: game.Weight, Height: game.Height}}
 		game.Connection.Connection.PushData(response)

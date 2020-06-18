@@ -1,39 +1,59 @@
-document.getElementById("greet").hidden = false;
+var PIXI = require('pixi.js');
 
+let app;
+let player;
+let socket;
+let socketInfo = {
+    x: 0,
+    y: 0,
+};
+let keysPressed = {};
+
+document.getElementById("greet").hidden = false;
 document.getElementById("choose-multi").addEventListener('click', startGame);
 
 function startGame() {
     document.getElementById("greet").hidden = true;
-    document.getElementById("game").hidden = false;
-    document.getElementById("game-canvas").hidden = false;
+    document.getElementById("app").hidden = false;
 
-    game.socket = new WebSocket('ws://127.0.0.1:3000/ws');
-    game.socket.onmessage = function (event) {
+    socket = new WebSocket('ws://127.0.0.1:3000/ws');
+    socket.onmessage = function (event) {
         const messageText = event.data;
         const message = JSON.parse(messageText);
         console.log(message);
     };
 
-    game.socket.onopen = function (e) {
+    socket.onopen = function (e) {
         console.log("[open] Соединение установлено");
         console.log("Отправляем данные на сервер");
-        game.socket.send('{"type":"newPlayer","payload":{"name":"test1"}}');
+        socket.send('{"type":"newPlayer","payload":{"name":"test1"}}');
     };
 
-    game.socket.onmessage = function (event) {
-        console.log(`[message] Данные получены с сервера: ${event.data}`);
+    socket.onmessage = function (event) {
         let response = JSON.parse(event.data);
         if (response.type === 'SIGNAL_START_THE_GAME') {
-            game.canvas.width = response.conf.width;
-            game.canvas.height = response.conf.height;
-            game.interval = setInterval(() => gameLoop(), 100);
+            app = new PIXI.Application({
+                width: response.conf.width,
+                height: response.conf.height,
+                backgroundColor: 0x1099bb,
+                resolution: window.devicePixelRatio || 1,
+
+
+            });
+            document.getElementById("app").appendChild(app.view);
+            player = PIXI.Sprite.from('static/bunny.png');
+            player.anchor.set(0.5);
+            player.x = 0;
+            player.y = 0;
+            app.stage.addChild(player);
+            app.ticker.add(appLoop);
         }
         if (response.type === 'SIGNAL_INFO_THE_GAME') {
-            game.player = response.info.player
+            socketInfo = response.info.player;
         }
     };
 
-    game.socket.onclose = function (event) {
+    socket.onclose = function (event) {
         if (event.wasClean) {
             console.log(`[close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
         } else {
@@ -43,36 +63,30 @@ function startGame() {
         }
     };
 
-    game.socket.onerror = function (error) {
+    socket.onerror = function (error) {
         console.log(`[error] ${error.message}`);
     };
-
-
 }
 
-let game = {};
-game.canvas = document.getElementById("game-canvas");
-game.ctx = game.canvas.getContext("2d");
-game.canvas.width = 0;
-game.canvas.height = 0;
-game.player = {
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-};
+function appLoop() {
+    let x = socketInfo.x - player.x;
+    let y = socketInfo.y - player.y;
+    // player.x += x;
+    // player.y += y;
+    if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
+        player.x += x;
+    }
+    if (keysPressed['KeyS'] && keysPressed['KeyS'] === true) {
+        player.y += y;
+    }
+    if (keysPressed['KeyW'] && keysPressed['KeyW'] === true) {
+        player.y -= y;
+    }
+    if (keysPressed['KeyA'] && keysPressed['KeyA'] === true) {
+        player.x -= x;
 
-
-function gameLoop() {
-
-    game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
-    game.ctx.fillStyle = "silver";
-    game.ctx.fillRect(0, 0, game.canvas.width, game.canvas.height);
-    game.ctx.fillStyle = "green";
-    game.ctx.fillRect(game.player.x, game.player.y, game.player.w, game.player.h);
+    }
 }
-
-let keysPressed = {};
 
 document.addEventListener('keydown', (event) => {
     keysPressed[event.code] = true;
@@ -84,8 +98,6 @@ document.addEventListener('keyup', (event) => {
 
 document.addEventListener('keydown', function (event) {
     let dir = '';
-    console.log(keysPressed);
-
     if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
         dir = 'right';
     }
@@ -110,8 +122,7 @@ document.addEventListener('keydown', function (event) {
     if (dir === '') {
         return;
     }
-    console.log('{"type":"command","payload":{"name":"' + dir + '"}}');
 
-    game.socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
+    socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
 
 });

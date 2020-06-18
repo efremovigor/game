@@ -33,22 +33,22 @@ type Game struct {
 func (game *Game) Move(command string) {
 	switch command {
 	case "up":
-		game.Player.Y -= game.Player.H / 3
+		game.Player.Y -= 5
 		if game.Player.Y < 0 {
 			game.Player.Y = 0
 		}
 	case "down":
-		game.Player.Y += game.Player.H / 3
+		game.Player.Y += 5
 		if game.Player.Y > game.Height-game.Player.H {
 			game.Player.Y = game.Height - game.Player.H
 		}
 	case "left":
-		game.Player.X -= game.Player.W / 3
+		game.Player.X -= 5
 		if game.Player.X < 0 {
 			game.Player.X = 0
 		}
 	case "right":
-		game.Player.X += game.Player.W / 3
+		game.Player.X += 5
 		if game.Player.X > game.Weight-game.Player.W {
 			game.Player.X = game.Weight - game.Player.W
 		}
