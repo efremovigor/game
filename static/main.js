@@ -26,10 +26,13 @@ function startGame() {
         if (response.type === 'SIGNAL_START_THE_GAME') {
             game.canvas.width = response.conf.width;
             game.canvas.height = response.conf.height;
-            game.interval = setInterval(() => gameLoop(), 100);
+            game.interval = setInterval(() => gameLoop(), 1 / 60 * 1000);
         }
         if (response.type === 'SIGNAL_INFO_THE_GAME') {
-            game.player = response.info.player
+            game.player.h = response.info.player.h;
+            game.player.w = response.info.player.w;
+            player = response.info.player
+
         }
     };
 
@@ -61,9 +64,28 @@ game.player = {
     w: 0,
     h: 0,
 };
-
+let player = {
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+};
 
 function gameLoop() {
+
+    if (game.player.x < player.x) {
+        game.player.x++
+    }
+    if (game.player.x > player.x) {
+        game.player.x--
+    }
+    if (game.player.y < player.y) {
+        game.player.y++
+    }
+    if (game.player.y > player.y) {
+        game.player.y--
+    }
+    console.log(game.player);
 
     game.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
     game.ctx.fillStyle = "silver";

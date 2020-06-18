@@ -41,7 +41,7 @@ func handleRequest(request lib.UserRequest) {
 		playerConnection.InGame = true
 		go func(game *lib.Game) {
 			for {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *game.Player}}
 				game.Connection.Connection.PushData(response)
 			}
