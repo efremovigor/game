@@ -71,21 +71,19 @@ function startGame() {
 function appLoop() {
     let x = socketInfo.x - player.x;
     let y = socketInfo.y - player.y;
-    // player.x += x;
-    // player.y += y;
-    if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
-        player.x += x;
+    if(socketInfo.x > player.x && keysPressed['KeyD'] && keysPressed['KeyD'] === true){
+        player.x = Math.floor( player.x + x/3);
     }
-    if (keysPressed['KeyS'] && keysPressed['KeyS'] === true) {
-        player.y += y;
+    if(socketInfo.x < player.x && keysPressed['KeyA'] && keysPressed['KeyA'] === true){
+        player.x = Math.floor( player.x + x/3);
     }
-    if (keysPressed['KeyW'] && keysPressed['KeyW'] === true) {
-        player.y -= y;
+    if(socketInfo.y > player.y && keysPressed['KeyS'] && keysPressed['KeyS'] === true){
+        player.y = Math.floor( player.y + y/3);
     }
-    if (keysPressed['KeyA'] && keysPressed['KeyA'] === true) {
-        player.x -= x;
-
+    if(socketInfo.y < player.y && keysPressed['KeyW'] && keysPressed['KeyW'] === true){
+        player.y = Math.floor( player.y + y/3);
     }
+    console.log(player.x,player.y)
 }
 
 document.addEventListener('keydown', (event) => {

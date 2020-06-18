@@ -41,9 +41,16 @@ func handleRequest(request lib.UserRequest) {
 		playerConnection.InGame = true
 		go func(game *lib.Game) {
 			for {
-				time.Sleep(100 * time.Millisecond)
-				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *game.Player}}
-				game.Connection.Connection.PushData(response)
+				time.Sleep(10 * time.Millisecond)
+				if game.SentPlayer == nil || game.Player.X != game.SentPlayer.X || game.Player.Y != game.SentPlayer.Y {
+					if game.SentPlayer == nil {
+						game.SentPlayer = &lib.Player{}
+					}
+					response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *game.Player}}
+					game.Connection.Connection.PushData(response)
+					game.SentPlayer.X = game.Player.X
+					game.SentPlayer.Y = game.Player.Y
+				}
 			}
 		}(game)
 
