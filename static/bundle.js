@@ -44197,30 +44197,20 @@ function startGame() {
 function appLoop() {
     let x = socketInfo.x - player.x;
     let y = socketInfo.y - player.y;
-    if(socketInfo.x > player.x && keysPressed['KeyD'] && keysPressed['KeyD'] === true){
-        player.x = Math.floor( player.x + x/3);
+    if(x > 0 && keysPressed['KeyD'] && keysPressed['KeyD'] === true){
+        player.x = Math.floor( player.x + x/2);
     }
-    if(socketInfo.x < player.x && keysPressed['KeyA'] && keysPressed['KeyA'] === true){
-        player.x = Math.floor( player.x + x/3);
+    if(x < 0 && keysPressed['KeyA'] && keysPressed['KeyA'] === true){
+        player.x = Math.floor( player.x + x/2);
     }
-    if(socketInfo.y > player.y && keysPressed['KeyS'] && keysPressed['KeyS'] === true){
-        player.y = Math.floor( player.y + y/3);
+    if(y > 0 && keysPressed['KeyS'] && keysPressed['KeyS'] === true){
+        player.y = Math.floor( player.y + y/2);
     }
-    if(socketInfo.y < player.y && keysPressed['KeyW'] && keysPressed['KeyW'] === true){
-        player.y = Math.floor( player.y + y/3);
+    if(y < 0 && keysPressed['KeyW'] && keysPressed['KeyW'] === true){
+        player.y = Math.floor( player.y + y/2);
     }
-    console.log(player.x,player.y)
-}
+    console.log(player.x,player.y);
 
-document.addEventListener('keydown', (event) => {
-    keysPressed[event.code] = true;
-});
-
-document.addEventListener('keyup', (event) => {
-    delete keysPressed[event.code];
-});
-
-document.addEventListener('keydown', function (event) {
     let dir = '';
     if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
         dir = 'right';
@@ -44246,9 +44236,17 @@ document.addEventListener('keydown', function (event) {
     if (dir === '') {
         return;
     }
+    console.log(dir);
 
     socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
+}
 
+document.addEventListener('keydown', (event) => {
+    keysPressed[event.code] = true;
+});
+
+document.addEventListener('keyup', (event) => {
+    delete keysPressed[event.code];
 });
 },{"pixi.js":43}],46:[function(require,module,exports){
 // shim for using process in browser
