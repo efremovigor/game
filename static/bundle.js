@@ -44124,15 +44124,21 @@ exports.middleware = index;
 
 
 },{"mini-signals":40,"parse-uri":42}],45:[function(require,module,exports){
-var PIXI = require('pixi.js');
+let PIXI = require('pixi.js');
+let loader = PIXI.Loader.shared;
+loader.add('bunny', 'static/bunny.png');
+loader.load();
 
 let app;
 let player;
-let socket;
-let socketInfo = {
+let playerSocketInfo = {
     x: 0,
     y: 0,
 };
+let otherPlayers = {};
+let otherPlayerSocketInfo = {};
+let socket;
+
 let keysPressed = {};
 
 document.getElementById("greet").hidden = false;
@@ -44167,7 +44173,7 @@ function startGame() {
 
             });
             document.getElementById("app").appendChild(app.view);
-            player = PIXI.Sprite.from('static/bunny.png');
+            player = PIXI.Sprite.from(loader.resources['bunny'].texture);
             player.anchor.set(0.5);
             player.x = 0;
             player.y = 0;
@@ -44175,7 +44181,8 @@ function startGame() {
             app.ticker.add(appLoop);
         }
         if (response.type === 'SIGNAL_INFO_THE_GAME') {
-            socketInfo = response.info.player;
+            playerSocketInfo = response.info.player;
+            otherPlayerSocketInfo = response.info.others;
         }
     };
 
@@ -44193,23 +44200,61 @@ function startGame() {
         console.log(`[error] ${error.message}`);
     };
 }
+setInterval(function () {
+
+    for (let [key, value] of Object.entries(otherPlayers)) {
+        if(value.getLastTime + 1500 < Date.now()){
+            console.log('remove'+key);
+            app.stage.removeChild(otherPlayers[key]);
+            delete otherPlayers[key];
+        }
+        console.log('count:'+Object.entries(otherPlayers).length);
+
+    }
+
+},1);
 
 function appLoop() {
-    let x = socketInfo.x - player.x;
-    let y = socketInfo.y - player.y;
-    if(x > 0 && keysPressed['KeyD'] && keysPressed['KeyD'] === true){
-        player.x = Math.floor( player.x + x/2);
+    let x = playerSocketInfo.x - player.x;
+    let y = playerSocketInfo.y - player.y;
+    if (x > 0) {
+        player.x = Math.floor(player.x + x / 2);
     }
-    if(x < 0 && keysPressed['KeyA'] && keysPressed['KeyA'] === true){
-        player.x = Math.floor( player.x + x/2);
+    if (x < 0) {
+        player.x = Math.floor(player.x + x / 2);
     }
-    if(y > 0 && keysPressed['KeyS'] && keysPressed['KeyS'] === true){
-        player.y = Math.floor( player.y + y/2);
+    if (y > 0) {
+        player.y = Math.floor(player.y + y / 2);
     }
-    if(y < 0 && keysPressed['KeyW'] && keysPressed['KeyW'] === true){
-        player.y = Math.floor( player.y + y/2);
+    if (y < 0) {
+        player.y = Math.floor(player.y + y / 2);
     }
-    console.log(player.x,player.y);
+    console.log(Object.entries(otherPlayerSocketInfo).length);
+    for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
+        if(!otherPlayers[key]){
+            otherPlayers[key] = PIXI.Sprite.from(loader.resources['bunny'].texture);
+            otherPlayers[key].anchor.set(0.5);
+            otherPlayers[key].x = 0;
+            otherPlayers[key].y = 0;
+            app.stage.addChild(otherPlayers[key]);
+        }else{
+            let x = value.x - otherPlayers[key].x;
+            let y = value.y - otherPlayers[key].y;
+            if (x > 0) {
+                otherPlayers[key].x = Math.floor(otherPlayers[key].x + x / 2);
+            }
+            if (x < 0) {
+                otherPlayers[key].x = Math.floor(otherPlayers[key].x + x / 2);
+            }
+            if (y > 0) {
+                otherPlayers[key].y = Math.floor(otherPlayers[key].y + y / 2);
+            }
+            if (y < 0) {
+                otherPlayers[key].y = Math.floor(otherPlayers[key].y + y / 2);
+            }
+        }
+        otherPlayers[key].getLastTime = Date.now();
+    }
 
     let dir = '';
     if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
@@ -44236,7 +44281,6 @@ function appLoop() {
     if (dir === '') {
         return;
     }
-    console.log(dir);
 
     socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
 }

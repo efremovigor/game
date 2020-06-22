@@ -98,10 +98,14 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case <-receiver.closeConnect:
-				if _, ok := Games[session.ID]; ok {
-					//game.stopGame()
+				fmt.Println("remove connection: ", session.ID)
+				game, ok := Games[session.ID]
+				if ok {
+					delete(game.Connection, session.ID)
 				}
-				_ = conn.Close()
+				if _, ok := Connections[session.ID]; ok {
+					delete(Connections, session.ID)
+				}
 				break
 			}
 		}

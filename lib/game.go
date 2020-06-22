@@ -1,5 +1,7 @@
 package lib
 
+import "sync"
+
 const RequestTypeNewCommand = "command"
 const RequestTypeNewPlayer = "newPlayer"
 
@@ -21,44 +23,45 @@ type PlayerConnection struct {
 	Name       string
 	Command    chan string
 	InGame     bool
+	Player     *Player
 }
 
 type Game struct {
-	Connection PlayerConnection
-	Player     *Player
-	SentPlayer *Player
+	Connection map[string]*PlayerConnection
 	Weight     int
 	Height     int
+	Lock       sync.Mutex
 }
 
-func (game *Game) Move(command string) {
+func (playerConnection *PlayerConnection) Move(game Game, command string) {
 	switch command {
 	case "up":
-		game.Player.Y -= 10
-		if game.Player.Y < 0 {
-			game.Player.Y = 0
+		playerConnection.Player.Y -= 10
+		if playerConnection.Player.Y < 0 {
+			playerConnection.Player.Y = 0
 		}
 	case "down":
-		game.Player.Y += 10
-		if game.Player.Y > game.Height-game.Player.H {
-			game.Player.Y = game.Height - game.Player.H
+		playerConnection.Player.Y += 10
+		if playerConnection.Player.Y > game.Height-playerConnection.Player.H {
+			playerConnection.Player.Y = game.Height - playerConnection.Player.H
 		}
 	case "left":
-		game.Player.X -= 10
-		if game.Player.X < 0 {
-			game.Player.X = 0
+		playerConnection.Player.X -= 10
+		if playerConnection.Player.X < 0 {
+			playerConnection.Player.X = 0
 		}
 	case "right":
-		game.Player.X += 10
-		if game.Player.X > game.Weight-game.Player.W {
-			game.Player.X = game.Weight - game.Player.W
+		playerConnection.Player.X += 10
+		if playerConnection.Player.X > game.Weight-playerConnection.Player.W {
+			playerConnection.Player.X = game.Weight - playerConnection.Player.W
 		}
 	}
 }
 
 type Player struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-	W int `json:"w"`
-	H int `json:"h"`
+	ID string `json:"id"`
+	X  int    `json:"x"`
+	Y  int    `json:"y"`
+	W  int    `json:"w"`
+	H  int    `json:"h"`
 }

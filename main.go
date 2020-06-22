@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"reflect"
 	"strings"
 	"time"
 	"try-to-game/lib"
@@ -12,7 +14,8 @@ type ResponseInfoState struct {
 	Info ResponseInfoStateInfo `json:"info"`
 }
 type ResponseInfoStateInfo struct {
-	Player lib.Player `json:"player"`
+	Player lib.Player            `json:"player"`
+	Others map[string]lib.Player `json:"others"`
 }
 
 type ResponseStartGameState struct {
@@ -20,56 +23,73 @@ type ResponseStartGameState struct {
 	Conf ResponseConf `json:"conf"`
 }
 type ResponseConf struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+	ID     string `json:"id"`
 }
 
 func handleRequest(request lib.UserRequest) {
 	playerConnection := getPlayConnection(request)
-	fmt.Println(playerConnection)
 	if playerConnection.InGame {
 		playerConnection.Command <- request.Request.Payload.Name
 		return
 	}
 
 	if request.Request.Type == lib.RequestTypeNewPlayer {
-		game := &lib.Game{Player: &lib.Player{X: 15, Y: 15, W: 20, H: 20}, Connection: *playerConnection, Weight: 800, Height: 600}
+		var game *lib.Game
+		playerConnection.InGame = true
+		playerConnection.Player = &lib.Player{X: 15, Y: 15, W: 20, H: 20, ID: playerConnection.SessionId}
+		if len(lib.Games) > 0 {
+			keys := reflect.ValueOf(lib.Games).MapKeys()
+			game = lib.Games[keys[rand.Intn(len(keys))].Interface().(string)]
+		} else {
+			connections := make(map[string]*lib.PlayerConnection)
+			game = &lib.Game{Connection: connections, Weight: 800, Height: 600}
+		}
+		lib.Games[playerConnection.SessionId] = game
+		connections := game.Connection
+		connections[playerConnection.SessionId] = playerConnection
 
 		response := ResponseStartGameState{Type: lib.SignalStartTheGame, Conf: ResponseConf{Width: game.Weight, Height: game.Height}}
-		game.Connection.Connection.PushData(response)
+		playerConnection.Connection.PushData(response)
 
-		playerConnection.InGame = true
-		go func(game *lib.Game) {
+		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
+			defer fmt.Println("sender data -" + playerConnection.SessionId + "closed")
 			for {
 				time.Sleep(10 * time.Millisecond)
-				if game.SentPlayer == nil || game.Player.X != game.SentPlayer.X || game.Player.Y != game.SentPlayer.Y {
-					if game.SentPlayer == nil {
-						game.SentPlayer = &lib.Player{}
-					}
-					response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *game.Player}}
-					game.Connection.Connection.PushData(response)
-					game.SentPlayer.X = game.Player.X
-					game.SentPlayer.Y = game.Player.Y
-				}
-			}
-		}(game)
+				var others = make(map[string]lib.Player)
+				connections := game.Connection
+				fmt.Println("count connections:", len(connections))
+				for key, connection := range connections {
+					fmt.Println("connection: ", playerConnection.SessionId)
 
-		go func(game *lib.Game) {
+					if key == playerConnection.SessionId {
+						continue
+					}
+					others[connection.Player.ID] = *connection.Player
+				}
+				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others}}
+				playerConnection.Connection.PushData(response)
+			}
+		}(playerConnection, game)
+
+		go func(playerConnection *lib.PlayerConnection) {
+			defer fmt.Println("calculate data -" + playerConnection.SessionId + "closed")
+
 			for {
 				select {
-				case command := <-game.Connection.Command:
+				case command := <-playerConnection.Command:
 					commands := strings.Split(command, "-")
 					if len(commands) > 0 {
 						for _, command := range commands {
-							game.Move(command)
+							playerConnection.Move(*game, command)
 						}
 					} else {
-						game.Move(command)
+						playerConnection.Move(*game, command)
 					}
-
 				}
 			}
-		}(game)
+		}(playerConnection)
 	}
 }
 
