@@ -2,8 +2,12 @@ package lib
 
 import "sync"
 
+const GameWidth = 800
+const GameHeight = 600
 const RequestTypeNewCommand = "command"
 const RequestTypeNewPlayer = "newPlayer"
+const RequestTypeLobbyList = "lobbyList"
+const RequestInit = "init"
 
 const commandFire = "fire"
 const commandUp = "up"
@@ -11,8 +15,11 @@ const commandDown = "down"
 const commandLeft = "left"
 const commandRight = "right"
 
+const SignalConfTheGame = "SIGNAL_CONF_THE_GAME"
 const SignalStartTheGame = "SIGNAL_START_THE_GAME"
 const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
+
+const MaxUserInLobby = 4
 
 var Connections = make(map[string]*PlayerConnection)
 var Games = make(map[string]*Game)
@@ -28,7 +35,7 @@ type PlayerConnection struct {
 
 type Game struct {
 	Connection map[string]*PlayerConnection
-	Weight     int
+	Width      int
 	Height     int
 	Lock       sync.Mutex
 }
@@ -52,8 +59,8 @@ func (playerConnection *PlayerConnection) Move(game Game, command string) {
 		}
 	case "right":
 		playerConnection.Player.X += 10
-		if playerConnection.Player.X > game.Weight-playerConnection.Player.W {
-			playerConnection.Player.X = game.Weight - playerConnection.Player.W
+		if playerConnection.Player.X > game.Width-playerConnection.Player.W {
+			playerConnection.Player.X = game.Width - playerConnection.Player.W
 		}
 	}
 }

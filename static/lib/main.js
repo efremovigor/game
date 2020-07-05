@@ -12,7 +12,7 @@ let playerSocketInfo = {
 let otherPlayers = {};
 let otherPlayerSocketInfo = {};
 let socket;
-
+let lobbies;
 let keysPressed = {};
 
 document.getElementById("greet").hidden = false;
@@ -43,8 +43,6 @@ function startGame() {
                 height: response.conf.height,
                 backgroundColor: 0x1099bb,
                 resolution: window.devicePixelRatio || 1,
-
-
             });
             document.getElementById("app").appendChild(app.view);
             player = PIXI.Sprite.from(loader.resources['bunny'].texture);
@@ -57,6 +55,9 @@ function startGame() {
         if (response.type === 'SIGNAL_INFO_THE_GAME') {
             playerSocketInfo = response.info.player;
             otherPlayerSocketInfo = response.info.others;
+        }
+        if (response.type === 'SIGNAL_LOBBY_LIST') {
+            lobbies = response.info.lobbies
         }
     };
 
