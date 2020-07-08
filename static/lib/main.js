@@ -30,34 +30,83 @@ function startGame() {
     };
 
     socket.onopen = function (e) {
-        console.log("[open] Соединение установлено");
-        console.log("Отправляем данные на сервер");
-        socket.send('{"type":"newPlayer","payload":{"name":"test1"}}');
+        socket.send('{"type":"init"}');
+        socket.send('{"type":"lobbyList"}');
     };
 
     socket.onmessage = function (event) {
         let response = JSON.parse(event.data);
-        if (response.type === 'SIGNAL_START_THE_GAME') {
-            app = new PIXI.Application({
-                width: response.conf.width,
-                height: response.conf.height,
-                backgroundColor: 0x1099bb,
-                resolution: window.devicePixelRatio || 1,
-            });
-            document.getElementById("app").appendChild(app.view);
-            player = PIXI.Sprite.from(loader.resources['bunny'].texture);
-            player.anchor.set(0.5);
-            player.x = 0;
-            player.y = 0;
-            app.stage.addChild(player);
-            app.ticker.add(appLoop);
-        }
-        if (response.type === 'SIGNAL_INFO_THE_GAME') {
-            playerSocketInfo = response.info.player;
-            otherPlayerSocketInfo = response.info.others;
-        }
-        if (response.type === 'SIGNAL_LOBBY_LIST') {
-            lobbies = response.info.lobbies
+        switch (response.type) {
+            case 'SIGNAL_CONF_THE_GAME':
+                app = new PIXI.Application({
+                    width: response.conf.width,
+                    height: response.conf.height,
+                    backgroundColor: 0x53b4ff,
+                    resolution: window.devicePixelRatio || 1,
+                });
+                document.getElementById("app").appendChild(app.view);
+                break;
+            case 'SIGNAL_LOBBY_LIST':
+                clean();
+                let i = 1;
+                response.lobbies.forEach(function (element) {
+                    let lobbyLink = new PIXI.Text(i.toString() + '.' + element.title + '(' + (element.max - element.free).toString() + '/' + element.max.toString() + ')');
+                    lobbyLink.x = 10;
+                    lobbyLink.y = (i - 1) * 15 + 3;
+                    lobbyLink.style = new PIXI.TextStyle({
+                        fill: 0x223AFF,
+                        fontSize: 15
+                    });
+                    lobbyLink.alpha = 0.3;
+                    lobbyLink.lobbyId = element.id;
+                    lobbyLink.mouseover = function () {
+                        this.alpha = 1;
+                    };
+                    lobbyLink.mouseout = function () {
+                        this.alpha = 0.3;
+                    };
+                    lobbyLink.interactive = true;
+                    lobbyLink.click = function () {
+                        socket.send('{"type":"newPlayer","lobby":"' + lobbyLink.lobbyId.toString() + '","payload":{"name":"' + document.getElementById("username").value + '"}}');
+                    };
+                    app.stage.addChild(lobbyLink);
+                    i++
+                });
+                let lobbyLink = new PIXI.Text('Create new lobby');
+                lobbyLink.x = 10;
+                lobbyLink.y = (i - 1) * 15 + 3;
+                lobbyLink.style = new PIXI.TextStyle({
+                    fill: 0x223AFF,
+                    fontSize: 15
+                });
+                lobbyLink.alpha = 0.3;
+
+                lobbyLink.mouseover = function () {
+                    this.alpha = 1;
+                };
+                lobbyLink.mouseout = function () {
+                    this.alpha = 0.2;
+                };
+                lobbyLink.interactive = true;
+                lobbyLink.click = function () {
+                    socket.send('{"type":"newPlayer","payload":{"name":"' + document.getElementById("username").value + '"}}');
+                };
+                app.stage.addChild(lobbyLink);
+
+                break;
+            case 'SIGNAL_START_THE_GAME':
+                clean();
+                player = PIXI.Sprite.from(loader.resources['bunny'].texture);
+                player.anchor.set(0.5);
+                player.x = 0;
+                player.y = 0;
+                app.stage.addChild(player);
+                app.ticker.add(appLoop);
+                break;
+            case 'SIGNAL_INFO_THE_GAME':
+                playerSocketInfo = response.info.player;
+                otherPlayerSocketInfo = response.info.others;
+                break;
         }
     };
 
@@ -75,19 +124,27 @@ function startGame() {
         console.log(`[error] ${error.message}`);
     };
 }
+
 setInterval(function () {
 
     for (let [key, value] of Object.entries(otherPlayers)) {
-        if(value.getLastTime + 1500 < Date.now()){
-            console.log('remove'+key);
+        if (value.getLastTime + 1500 < Date.now()) {
+            console.log('remove' + key);
             app.stage.removeChild(otherPlayers[key]);
             delete otherPlayers[key];
         }
-        console.log('count:'+Object.entries(otherPlayers).length);
+        console.log('count:' + Object.entries(otherPlayers).length);
 
     }
 
-},1);
+}, 1);
+
+function clean() {
+    while (app.stage.children.length > 0) {
+        let child = app.stage.getChildAt(0);
+        app.stage.removeChild(child);
+    }
+}
 
 function appLoop() {
     let x = playerSocketInfo.x - player.x;
@@ -106,13 +163,13 @@ function appLoop() {
     }
     console.log(Object.entries(otherPlayerSocketInfo).length);
     for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
-        if(!otherPlayers[key]){
+        if (!otherPlayers[key]) {
             otherPlayers[key] = PIXI.Sprite.from(loader.resources['bunny'].texture);
             otherPlayers[key].anchor.set(0.5);
             otherPlayers[key].x = 0;
             otherPlayers[key].y = 0;
             app.stage.addChild(otherPlayers[key]);
-        }else{
+        } else {
             let x = value.x - otherPlayers[key].x;
             let y = value.y - otherPlayers[key].y;
             if (x > 0) {

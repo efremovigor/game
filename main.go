@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"reflect"
 	"strings"
 	"time"
 	"try-to-game/lib"
@@ -36,7 +34,7 @@ type LobbyInfo struct {
 	Max   int    `json:"max"`
 	Free  int    `json:"free"`
 	Title string `json:"title"`
-	Id    string `json:"title"`
+	Id    string `json:"id"`
 }
 
 func handleRequest(request lib.UserRequest) {
@@ -45,11 +43,9 @@ func handleRequest(request lib.UserRequest) {
 	case lib.RequestInit:
 		response := ResponseStartGameState{Type: lib.SignalConfTheGame, Conf: ResponseConf{Width: lib.GameWidth, Height: lib.GameHeight}}
 		playerConnection.Connection.PushData(response)
-	case lib.RequestTypeNewCommand:
-		playerConnection.Command <- request.Request.Payload.Name
 	case lib.RequestTypeLobbyList:
-		response := ResponseLobbyList{Type: lib.RequestTypeLobbyList, Lobbies: []LobbyInfo{}}
-		for id, game := range lib.Games {
+		response := ResponseLobbyList{Type: lib.SignalLobbyList, Lobbies: []LobbyInfo{}}
+		for id, game := range lib.UniGames {
 			response.Lobbies = append(response.Lobbies, LobbyInfo{Max: lib.MaxUserInLobby, Free: lib.MaxUserInLobby - len(game.Connection), Id: id, Title: lib.Connections[id].Name})
 		}
 		playerConnection.Connection.PushData(response)
@@ -57,12 +53,16 @@ func handleRequest(request lib.UserRequest) {
 		var game *lib.Game
 		playerConnection.InGame = true
 		playerConnection.Player = &lib.Player{X: 15, Y: 15, W: 20, H: 20, ID: playerConnection.SessionId}
-		if len(lib.Games) > 0 {
-			keys := reflect.ValueOf(lib.Games).MapKeys()
-			game = lib.Games[keys[rand.Intn(len(keys))].Interface().(string)]
-		} else {
+		if request.Request.Lobby != "" {
+			found, ok := lib.Games[request.Request.Lobby]
+			if ok && len(found.Connection) < lib.MaxUserInLobby {
+				game = found
+			}
+		}
+		if game == nil {
 			connections := make(map[string]*lib.PlayerConnection)
 			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight}
+			lib.UniGames[playerConnection.SessionId] = game
 		}
 		lib.Games[playerConnection.SessionId] = game
 		connections := game.Connection
@@ -108,6 +108,8 @@ func handleRequest(request lib.UserRequest) {
 				}
 			}
 		}(playerConnection)
+	case lib.RequestTypeNewCommand:
+		playerConnection.Command <- request.Request.Payload.Name
 	}
 }
 

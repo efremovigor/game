@@ -23,6 +23,7 @@ type UserRequest struct {
 
 type LoginJsonRequest struct {
 	Type    string  `json:"type"`
+	Lobby   string  `json:"lobby"`
 	Payload Payload `json:"payload"`
 }
 

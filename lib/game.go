@@ -16,6 +16,7 @@ const commandLeft = "left"
 const commandRight = "right"
 
 const SignalConfTheGame = "SIGNAL_CONF_THE_GAME"
+const SignalLobbyList = "SIGNAL_LOBBY_LIST"
 const SignalStartTheGame = "SIGNAL_START_THE_GAME"
 const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
 
@@ -23,6 +24,7 @@ const MaxUserInLobby = 4
 
 var Connections = make(map[string]*PlayerConnection)
 var Games = make(map[string]*Game)
+var UniGames = make(map[string]*Game)
 
 type PlayerConnection struct {
 	Connection *ConnectionReceiver
