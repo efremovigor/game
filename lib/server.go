@@ -8,7 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
+	"reflect"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -99,10 +101,22 @@ func webSocketHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case <-receiver.closeConnect:
-				fmt.Println("remove connection: ", session.ID)
 				game, ok := Games[session.ID]
 				if ok {
+					fmt.Println("remove connection: ", session.ID)
 					delete(game.Connection, session.ID)
+					if len(game.Connection) == 0 {
+						delete(Games, session.ID)
+						delete(UniGames, session.ID)
+					} else if _, ok := Games[session.ID]; ok {
+						gameKeys := reflect.ValueOf(game.Connection).MapKeys()
+						newMainPlayer := gameKeys[rand.Intn(len(gameKeys))].Interface()
+						Games[newMainPlayer.(string)] = game
+						UniGames[newMainPlayer.(string)] = game
+						delete(Games, session.ID)
+						delete(UniGames, session.ID)
+						fmt.Println("Mainer changed from " + session.ID + " to " + newMainPlayer.(string))
+					}
 				}
 				if _, ok := Connections[session.ID]; ok {
 					delete(Connections, session.ID)

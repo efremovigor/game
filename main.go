@@ -77,10 +77,7 @@ func handleRequest(request lib.UserRequest) {
 				time.Sleep(10 * time.Millisecond)
 				var others = make(map[string]lib.Player)
 				connections := game.Connection
-				fmt.Println("count connections:", len(connections))
 				for key, connection := range connections {
-					fmt.Println("connection: ", playerConnection.SessionId)
-
 					if key == playerConnection.SessionId {
 						continue
 					}
