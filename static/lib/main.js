@@ -1,6 +1,7 @@
 let PIXI = require('pixi.js');
 let loader = PIXI.Loader.shared;
 loader.add('bunny', 'static/bunny.png');
+loader.add('bullet', 'static/bullet.png');
 loader.load();
 
 let app;
@@ -14,6 +15,8 @@ let otherPlayerSocketInfo = {};
 let socket;
 let lobbies;
 let keysPressed = {};
+let mousePosition = {x: 0, y: 0};
+let bullets = [];
 
 document.getElementById("greet").hidden = false;
 document.getElementById("choose-multi").addEventListener('click', startGame);
@@ -45,6 +48,11 @@ function startGame() {
                     resolution: window.devicePixelRatio || 1,
                 });
                 document.getElementById("app").appendChild(app.view);
+                app.stage.interactive = true;
+                app.stage.on("pointermove", function (e) {
+                    mousePosition.x = e.data.global.x;
+                    mousePosition.y = e.data.global.y;
+                });
                 break;
             case 'SIGNAL_LOBBY_LIST':
                 clean();
@@ -210,6 +218,44 @@ function appLoop() {
         }
         dir += 'left';
     }
+
+    if (keysPressed['Space']) {
+        let bullet = new PIXI.Sprite.from(loader.resources['bullet'].texture);
+        bullet.anchor.set(0.5);
+        bullet.x = player.x;
+        bullet.y = player.y;
+        bullet.dead = false;
+        bullet.playerPosition = {};
+        bullet.playerPosition.x = player.x;
+        bullet.playerPosition.y = player.y;
+        bullet.mousePosition = {};
+        bullet.mousePosition.x = mousePosition.x;
+        bullet.mousePosition.y = mousePosition.y;
+        bullet.speed = 2;
+        app.stage.addChild(bullet);
+        bullets.push(bullet);
+    }
+    for (let i = 0, c = bullets.length; i < c; i++) {
+        console.log(Math.floor((bullets[i].playerPosition.x - bullets[i].mousePosition.x) / Math.sqrt(bullets[i].playerPosition.x**2 + bullets[i].mousePosition.x**2)));
+        console.log(Math.floor((bullets[i].playerPosition.y - bullets[i].mousePosition.y) / Math.sqrt(bullets[i].playerPosition.y**2 + bullets[i].mousePosition.y**2)));
+
+        bullets[i].x = bullets[i].x - ((bullets[i].playerPosition.x - bullets[i].mousePosition.x) / Math.sqrt(bullets[i].playerPosition.x**2 + bullets[i].mousePosition.x**2) * bullets[i].speed);
+        if (bullets[i].x > app.width || bullets[i].x < 0) {
+            bullets[i].dead = true;
+        }
+        bullets[i].y = bullets[i].y - ((bullets[i].playerPosition.y - bullets[i].mousePosition.y) /Math.sqrt(bullets[i].playerPosition.y**2 + bullets[i].mousePosition.y**2) * bullets[i].speed);
+        if (bullets[i].y > app.height || bullets[i].y < 0) {
+            bullets[i].dead = true;
+        }
+    }
+
+    for (let i = 0, c = bullets.length; i < c; i++) {
+        if (bullets[i] && bullets[i].dead) {
+            app.stage.removeChild(bullets[i]);
+            bullets.splice(i, 1);
+        }
+    }
+
     if (dir === '') {
         return;
     }
