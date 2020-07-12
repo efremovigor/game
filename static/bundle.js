@@ -44348,32 +44348,25 @@ function appLoop() {
     if (keysPressed['Space']) {
         let bullet = new PIXI.Sprite.from(loader.resources['bullet'].texture);
         bullet.anchor.set(0.5);
+        bullet.dead = false;
         bullet.x = player.x;
         bullet.y = player.y;
-        bullet.dead = false;
-        bullet.playerPosition = {};
-        bullet.playerPosition.x = player.x;
-        bullet.playerPosition.y = player.y;
-        bullet.mousePosition = {};
-        bullet.mousePosition.x = mousePosition.x;
-        bullet.mousePosition.y = mousePosition.y;
-        bullet.speed = 2;
+        let alfa = Math.atan(mousePosition.y / mousePosition.x);
+        bullet.Xstep = 2 * Math.cos(alfa);
+        bullet.Ystep = 2 * Math.sin(alfa);
         app.stage.addChild(bullet);
         bullets.push(bullet);
     }
-    for (let i = 0, c = bullets.length; i < c; i++) {
-        console.log(Math.floor((bullets[i].playerPosition.x - bullets[i].mousePosition.x) / Math.sqrt(bullets[i].playerPosition.x**2 + bullets[i].mousePosition.x**2)));
-        console.log(Math.floor((bullets[i].playerPosition.y - bullets[i].mousePosition.y) / Math.sqrt(bullets[i].playerPosition.y**2 + bullets[i].mousePosition.y**2)));
 
-        bullets[i].x = bullets[i].x - ((bullets[i].playerPosition.x - bullets[i].mousePosition.x) / Math.sqrt(bullets[i].playerPosition.x**2 + bullets[i].mousePosition.x**2) * bullets[i].speed);
+    for (let i = 0, c = bullets.length; i < c; i++) {
+        bullets[i].x -= bullets[i].Xstep;
         if (bullets[i].x > app.width || bullets[i].x < 0) {
             bullets[i].dead = true;
         }
-        bullets[i].y = bullets[i].y - ((bullets[i].playerPosition.y - bullets[i].mousePosition.y) /Math.sqrt(bullets[i].playerPosition.y**2 + bullets[i].mousePosition.y**2) * bullets[i].speed);
+        bullets[i].y -= bullets[i].Ystep;
         if (bullets[i].y > app.height || bullets[i].y < 0) {
             bullets[i].dead = true;
-        }
-    }
+        }}
 
     for (let i = 0, c = bullets.length; i < c; i++) {
         if (bullets[i] && bullets[i].dead) {
