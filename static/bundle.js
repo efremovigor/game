@@ -44352,8 +44352,8 @@ function appLoop() {
         bullet.x = player.x;
         bullet.y = player.y;
         let alfa = Math.atan( (mousePosition.y - bullet.y) / (mousePosition.x - bullet.x));
-        bullet.Xstep = 2 * Math.cos(alfa);
-        bullet.Ystep = 2 * Math.sin(alfa);
+        bullet.Xstep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.cos(alfa);
+        bullet.Ystep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.sin(alfa);
         app.stage.addChild(bullet);
         bullets.push(bullet);
 

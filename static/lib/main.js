@@ -226,15 +226,10 @@ function appLoop() {
         bullet.x = player.x;
         bullet.y = player.y;
         let alfa = Math.atan( (mousePosition.y - bullet.y) / (mousePosition.x - bullet.x));
-        bullet.Xstep = 2 * Math.cos(alfa);
-        bullet.Ystep = 2 * Math.sin(alfa);
+        bullet.Xstep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.cos(alfa);
+        bullet.Ystep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.sin(alfa);
         app.stage.addChild(bullet);
         bullets.push(bullet);
-
-        console.log(11111111);
-        console.log(mousePosition.x - bullet.x);
-        console.log(- (mousePosition.y - bullet.y));
-        console.log(Math.atan( (mousePosition.y - bullet.y) / (mousePosition.x - bullet.x)));
     }
 
     for (let i = 0, c = bullets.length; i < c; i++) {
