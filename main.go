@@ -125,9 +125,9 @@ func handleRequest(request lib.UserRequest) {
 					if len(commands) > 0 {
 						for _, command := range commands {
 							if request.Payload.Name == lib.CommandShoot {
-								playerConnection.Shoot(*game, request.Payload.Bullet)
+								playerConnection.Shoot(game, request.Payload.Bullet)
 							} else {
-								playerConnection.Move(*game, command)
+								playerConnection.Move(game, command)
 							}
 						}
 					}

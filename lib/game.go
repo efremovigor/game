@@ -60,7 +60,9 @@ type BulletGame struct {
 	Deleted bool
 }
 
-func (playerConnection *PlayerConnection) Shoot(game Game, requestBullet Bullet) {
+func (playerConnection *PlayerConnection) Shoot(game *Game, requestBullet Bullet) {
+	game.Lock.Lock()
+	defer game.Lock.Unlock()
 	if playerConnection.Player.LatestShoot+int64(time.Second/2) >= time.Now().UnixNano() {
 		return
 	}
@@ -82,11 +84,14 @@ func (playerConnection *PlayerConnection) Shoot(game Game, requestBullet Bullet)
 	bullet.YStep = float64(bulletLeft*BulletSpeed) * math.Sin(bullet.delta)
 	bullet.Bullet.X = float64(bullet.Player.X)
 	bullet.Bullet.Y = float64(bullet.Player.Y)
-	bullets[md5.Sum([]byte(string(playerConnection.Player.X)+string(playerConnection.Player.Y)+fmt.Sprintf("%f", requestBullet.X)+fmt.Sprintf("%f", requestBullet.Y)+string(time.Now().UnixNano())))] = &bullet
+	bulletKey := md5.Sum([]byte(fmt.Sprintf("%d%d%f%f%d", playerConnection.Player.X, playerConnection.Player.Y, requestBullet.X, requestBullet.Y, time.Now().UnixNano())))
+	bullets[bulletKey] = &bullet
 	playerConnection.Player.LatestShoot = time.Now().UnixNano()
 }
 
-func (playerConnection *PlayerConnection) Move(game Game, command string) {
+func (playerConnection *PlayerConnection) Move(game *Game, command string) {
+	game.Lock.Lock()
+	defer game.Lock.Unlock()
 	switch command {
 	case CommandUp:
 		playerConnection.Player.Y -= PlayerSpeed
