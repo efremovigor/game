@@ -12,8 +12,10 @@ type ResponseInfoState struct {
 	Info ResponseInfoStateInfo `json:"info"`
 }
 type ResponseInfoStateInfo struct {
-	Player lib.Player            `json:"player"`
-	Others map[string]lib.Player `json:"others"`
+	Player        lib.Player            `json:"player"`
+	Others        map[string]lib.Player `json:"others"`
+	PlayerBullets map[string]lib.Bullet `json:"bullets"`
+	OthersBullets map[string]lib.Bullet `json:"othersBullets"`
 }
 
 type ResponseStartGameState struct {
@@ -61,14 +63,14 @@ func handleRequest(request lib.UserRequest) {
 		}
 		if game == nil {
 			connections := make(map[string]*lib.PlayerConnection)
-			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight}
+			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame)}
 			lib.UniGames[playerConnection.SessionId] = game
 		}
 		lib.Games[playerConnection.SessionId] = game
 		connections := game.Connection
 		connections[playerConnection.SessionId] = playerConnection
 
-		response := ResponseStartGameState{Type: lib.SignalStartTheGame}
+		response := ResponseInfoState{Type: lib.SignalStartTheGame}
 		playerConnection.Connection.PushData(response)
 
 		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
@@ -76,6 +78,8 @@ func handleRequest(request lib.UserRequest) {
 			for {
 				time.Sleep(10 * time.Millisecond)
 				var others = make(map[string]lib.Player)
+				var bullets = make(map[string]lib.Bullet)
+				var othersBullets = make(map[string]lib.Bullet)
 				connections := game.Connection
 				for key, connection := range connections {
 					if key == playerConnection.SessionId {
@@ -83,8 +87,31 @@ func handleRequest(request lib.UserRequest) {
 					}
 					others[connection.Player.ID] = *connection.Player
 				}
-				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others}}
+				for sessionId, playerBullets := range game.Bullets {
+					for bulletKey, bulletGame := range playerBullets {
+						bulletGame.Bullet.X += bulletGame.XStep
+						bulletGame.Bullet.Y += bulletGame.YStep
+						if bulletGame.Bullet.X > lib.GameWidth || bulletGame.Bullet.X < 0 || bulletGame.Bullet.Y > lib.GameHeight || bulletGame.Bullet.Y < 0 {
+							bulletGame.Deleted = true
+						}
+						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y}
+						if sessionId == playerConnection.SessionId {
+							bullets[string(bulletKey[:])] = bullet
+						} else {
+							othersBullets[string(bulletKey[:])] = bullet
+						}
+					}
+
+				}
+				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others, PlayerBullets: bullets, OthersBullets: othersBullets}}
 				playerConnection.Connection.PushData(response)
+				for _, playerBullets := range game.Bullets {
+					for bulletKey, bulletGame := range playerBullets {
+						if bulletGame.Deleted == true {
+							delete(playerBullets, bulletKey)
+						}
+					}
+				}
 			}
 		}(playerConnection, game)
 
@@ -93,27 +120,29 @@ func handleRequest(request lib.UserRequest) {
 
 			for {
 				select {
-				case command := <-playerConnection.Command:
-					commands := strings.Split(command, "-")
+				case request := <-playerConnection.Request:
+					commands := strings.Split(request.Payload.Name, "-")
 					if len(commands) > 0 {
 						for _, command := range commands {
-							playerConnection.Move(*game, command)
+							if request.Payload.Name == lib.CommandShoot {
+								playerConnection.Shoot(*game, request.Payload.Bullet)
+							} else {
+								playerConnection.Move(*game, command)
+							}
 						}
-					} else {
-						playerConnection.Move(*game, command)
 					}
 				}
 			}
 		}(playerConnection)
 	case lib.RequestTypeNewCommand:
-		playerConnection.Command <- request.Request.Payload.Name
+		playerConnection.Request <- request.Request
 	}
 }
 
 func getPlayConnection(request lib.UserRequest) *lib.PlayerConnection {
 	var playerConnection, ok = lib.Connections[request.SessionId]
 	if !ok {
-		playerConnection = &lib.PlayerConnection{Name: request.Request.Payload.Name, Connection: request.Receiver, Command: make(chan string), SessionId: request.SessionId}
+		playerConnection = &lib.PlayerConnection{Name: request.Request.Payload.Name, Connection: request.Receiver, Request: make(chan lib.LoginJsonRequest), SessionId: request.SessionId}
 		lib.Connections[request.SessionId] = playerConnection
 	}
 	return playerConnection

@@ -13,10 +13,12 @@ let playerSocketInfo = {
 let otherPlayers = {};
 let otherPlayerSocketInfo = {};
 let socket;
-let lobbies;
 let keysPressed = {};
 let mousePosition = {x: 0, y: 0};
 let bullets = [];
+let bulletsSocketInfo = [];
+let othersBullets = [];
+let othersBulletsSocketInfo = [];
 
 document.getElementById("greet").hidden = false;
 document.getElementById("choose-multi").addEventListener('click', startGame);
@@ -114,6 +116,9 @@ function startGame() {
             case 'SIGNAL_INFO_THE_GAME':
                 playerSocketInfo = response.info.player;
                 otherPlayerSocketInfo = response.info.others;
+                bulletsSocketInfo = response.info.bullets;
+                othersBulletsSocketInfo = response.info.othersBullets;
+                console.log(response.info);
                 break;
         }
     };
@@ -169,7 +174,6 @@ function appLoop() {
     if (y < 0) {
         player.y = Math.floor(player.y + y / 2);
     }
-    console.log(Object.entries(otherPlayerSocketInfo).length);
     for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
         if (!otherPlayers[key]) {
             otherPlayers[key] = PIXI.Sprite.from(loader.resources['bunny'].texture);
@@ -196,6 +200,33 @@ function appLoop() {
         otherPlayers[key].getLastTime = Date.now();
     }
 
+    for (let [key, value] of Object.entries(bulletsSocketInfo)) {
+        if (!bullets[key]) {
+            bullets[key] =  new PIXI.Sprite.from(loader.resources['bullet'].texture);
+            bullets[key].anchor.set(0.5);
+            bullets[key].dead = false;
+            bullets[key].x = player.x;
+            bullets[key].y = player.y;
+
+            app.stage.addChild(bullets[key]);
+        } else {
+            let x = value.x - bullets[key].x;
+            let y = value.y - bullets[key].y;
+            if (x > 0) {
+                bullets[key].x = Math.floor(bullets[key].x + x / 2);
+            }
+            if (x < 0) {
+                bullets[key].x = Math.floor(bullets[key].x + x / 2);
+            }
+            if (y > 0) {
+                bullets[key].y = Math.floor(bullets[key].y + y / 2);
+            }
+            if (y < 0) {
+                bullets[key].y = Math.floor(bullets[key].y + y / 2);
+            }
+        }
+    }
+
     let dir = '';
     if (keysPressed['KeyD'] && keysPressed['KeyD'] === true) {
         dir = 'right';
@@ -220,27 +251,8 @@ function appLoop() {
     }
 
     if (keysPressed['Space']) {
-        let bullet = new PIXI.Sprite.from(loader.resources['bullet'].texture);
-        bullet.anchor.set(0.5);
-        bullet.dead = false;
-        bullet.x = player.x;
-        bullet.y = player.y;
-        let alfa = Math.atan( (mousePosition.y - bullet.y) / (mousePosition.x - bullet.x));
-        bullet.Xstep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.cos(alfa);
-        bullet.Ystep = ((mousePosition.x - bullet.x) >= 0 ? 1 : -1 ) * 5 * Math.sin(alfa);
-        app.stage.addChild(bullet);
-        bullets.push(bullet);
+        socket.send('{"type":"command","payload":{"name":"shoot","bullet":{"x":' + mousePosition.x.toString() + ',"y":' + mousePosition.y.toString() + '}}}');
     }
-
-    for (let i = 0, c = bullets.length; i < c; i++) {
-        bullets[i].x += bullets[i].Xstep;
-        if (bullets[i].x > app.width || bullets[i].x < 0) {
-            bullets[i].dead = true;
-        }
-        bullets[i].y += bullets[i].Ystep;
-        if (bullets[i].y > app.height || bullets[i].y < 0) {
-            bullets[i].dead = true;
-        }}
 
     for (let i = 0, c = bullets.length; i < c; i++) {
         if (bullets[i] && bullets[i].dead) {

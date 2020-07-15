@@ -30,8 +30,14 @@ type LoginJsonRequest struct {
 }
 
 type Payload struct {
-	Name string `json:"name"`
-	Code string `json:"code"`
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Bullet Bullet `json:"bullet"`
+}
+
+type Bullet struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 type ConnectionReceiver struct {
@@ -131,7 +137,7 @@ func (receiver *ConnectionReceiver) handleRequest(message []byte, session *sessi
 	var request LoginJsonRequest
 	err := json.Unmarshal(message, &request)
 	if err != nil {
-		fmt.Println(string(message))
+		fmt.Println("unreadable message -" + string(message))
 		return
 	}
 	RequestChan <- UserRequest{Request: request, SessionId: session.ID, Receiver: receiver}
