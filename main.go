@@ -91,7 +91,7 @@ func handleRequest(request lib.UserRequest) {
 					for bulletKey, bulletGame := range playerBullets {
 						bulletGame.Bullet.X += bulletGame.XStep
 						bulletGame.Bullet.Y += bulletGame.YStep
-						if bulletGame.Bullet.X > lib.GameWidth || bulletGame.Bullet.X < 0 || bulletGame.Bullet.Y > lib.GameHeight || bulletGame.Bullet.Y < 0 {
+						if bulletGame.Bullet.X > lib.GameWidth+(lib.BulletSpeed*5) || bulletGame.Bullet.X < -lib.BulletSpeed*5 || bulletGame.Bullet.Y > lib.GameHeight+(lib.BulletSpeed*5) || bulletGame.Bullet.Y < -lib.BulletSpeed*5 {
 							bulletGame.Deleted = true
 						}
 						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y}

@@ -6,5 +6,6 @@ Backend на Go - Igor Efremov
 
 1. go build -o main
 2. ./main
-3 [`http://localhost:3000/`](http://localhost:3000/)
+3. browserify static/lib/main.js -o static/bundle.js
+4. [`http://localhost:3000/`](http://localhost:3000/)
 

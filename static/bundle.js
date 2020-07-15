@@ -44156,8 +44156,8 @@ function startGame() {
     socket = new WebSocket('ws://127.0.0.1:3000/ws');
     socket.onmessage = function (event) {
         const messageText = event.data;
-        const message = JSON.parse(messageText);
-        console.log(message);
+        // const message = JSON.parse(messageText);
+        // console.log(message);
     };
 
     socket.onopen = function (e) {
@@ -44244,7 +44244,7 @@ function startGame() {
                 otherPlayerSocketInfo = response.info.others;
                 bulletsSocketInfo = response.info.bullets;
                 othersBulletsSocketInfo = response.info.othersBullets;
-                console.log(response.info);
+                // console.log(response.info);
                 break;
         }
     };
@@ -44268,12 +44268,9 @@ setInterval(function () {
 
     for (let [key, value] of Object.entries(otherPlayers)) {
         if (value.getLastTime + 1500 < Date.now()) {
-            console.log('remove' + key);
             app.stage.removeChild(otherPlayers[key]);
             delete otherPlayers[key];
         }
-        console.log('count:' + Object.entries(otherPlayers).length);
-
     }
 
 }, 1);
@@ -44331,9 +44328,8 @@ function appLoop() {
             bullets[key] =  new PIXI.Sprite.from(loader.resources['bullet'].texture);
             bullets[key].anchor.set(0.5);
             bullets[key].dead = false;
-            bullets[key].x = player.x;
-            bullets[key].y = player.y;
-
+            bullets[key].x = value.x;
+            bullets[key].y = value.y;
             app.stage.addChild(bullets[key]);
         } else {
             let x = value.x - bullets[key].x;

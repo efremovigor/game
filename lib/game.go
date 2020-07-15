@@ -27,7 +27,7 @@ const SignalStartTheGame = "SIGNAL_START_THE_GAME"
 const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
 
 const MaxUserInLobby = 4
-const BulletSpeed = 10
+const BulletSpeed = 5
 const PlayerSpeed = 5
 
 var Connections = make(map[string]*PlayerConnection)
@@ -61,6 +61,10 @@ type BulletGame struct {
 }
 
 func (playerConnection *PlayerConnection) Shoot(game Game, requestBullet Bullet) {
+	if playerConnection.Player.LatestShoot+int64(time.Second/2) >= time.Now().UnixNano() {
+		return
+	}
+
 	bullets, ok := game.Bullets[playerConnection.SessionId]
 	if !ok {
 		bullets = make(map[[16]byte]*BulletGame)
@@ -76,7 +80,10 @@ func (playerConnection *PlayerConnection) Shoot(game Game, requestBullet Bullet)
 	}
 	bullet.XStep = float64(bulletLeft*BulletSpeed) * math.Cos(bullet.delta)
 	bullet.YStep = float64(bulletLeft*BulletSpeed) * math.Sin(bullet.delta)
-	bullets[md5.Sum([]byte(string(playerConnection.Player.X)+string(playerConnection.Player.Y)+fmt.Sprintf("%f", requestBullet.X)+fmt.Sprintf("%f", requestBullet.Y)+string(time.Now().Unix())))] = &bullet
+	bullet.Bullet.X = float64(bullet.Player.X)
+	bullet.Bullet.Y = float64(bullet.Player.Y)
+	bullets[md5.Sum([]byte(string(playerConnection.Player.X)+string(playerConnection.Player.Y)+fmt.Sprintf("%f", requestBullet.X)+fmt.Sprintf("%f", requestBullet.Y)+string(time.Now().UnixNano())))] = &bullet
+	playerConnection.Player.LatestShoot = time.Now().UnixNano()
 }
 
 func (playerConnection *PlayerConnection) Move(game Game, command string) {
@@ -105,9 +112,10 @@ func (playerConnection *PlayerConnection) Move(game Game, command string) {
 }
 
 type Player struct {
-	ID string `json:"id"`
-	X  int    `json:"x"`
-	Y  int    `json:"y"`
-	W  int    `json:"w"`
-	H  int    `json:"h"`
+	ID          string `json:"id"`
+	X           int    `json:"x"`
+	Y           int    `json:"y"`
+	W           int    `json:"w"`
+	H           int    `json:"h"`
+	LatestShoot int64
 }
