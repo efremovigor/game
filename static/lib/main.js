@@ -61,56 +61,20 @@ function startGame() {
                 clean();
                 let i = 1;
                 response.lobbies.forEach(function (element) {
-                    let lobbyLink = new PIXI.Text(i.toString() + '.' + element.title + '(' + (element.max - element.free).toString() + '/' + element.max.toString() + ')');
-                    lobbyLink.x = 10;
-                    lobbyLink.y = (i - 1) * 15 + 3;
-                    lobbyLink.style = new PIXI.TextStyle({
-                        fill: 0x223AFF,
-                        fontSize: 15
-                    });
-                    lobbyLink.alpha = 0.3;
+                    let lobbyLink = new Lobby(i.toString() + '.' + element.title + '(' + (element.max - element.free).toString() + '/' + element.max.toString() + ')');
+                    lobbyLink.setCoordinates(i);
                     lobbyLink.lobbyId = element.id;
-                    lobbyLink.mouseover = function () {
-                        this.alpha = 1;
-                    };
-                    lobbyLink.mouseout = function () {
-                        this.alpha = 0.3;
-                    };
-                    lobbyLink.interactive = true;
-                    lobbyLink.click = function () {
-                        socket.send('{"type":"newPlayer","lobby":"' + lobbyLink.lobbyId.toString() + '","payload":{"name":"' + document.getElementById("username").value + '"}}');
-                    };
                     app.stage.addChild(lobbyLink);
                     i++
                 });
-                let lobbyLink = new PIXI.Text('Create new lobby');
-                lobbyLink.x = 10;
-                lobbyLink.y = (i - 1) * 15 + 3;
-                lobbyLink.style = new PIXI.TextStyle({
-                    fill: 0x223AFF,
-                    fontSize: 15
-                });
-                lobbyLink.alpha = 0.3;
-
-                lobbyLink.mouseover = function () {
-                    this.alpha = 1;
-                };
-                lobbyLink.mouseout = function () {
-                    this.alpha = 0.2;
-                };
-                lobbyLink.interactive = true;
-                lobbyLink.click = function () {
-                    socket.send('{"type":"newPlayer","payload":{"name":"' + document.getElementById("username").value + '"}}');
-                };
+                let lobbyLink = new Lobby('Create new lobby');
+                lobbyLink.setCoordinates(i);
                 app.stage.addChild(lobbyLink);
 
                 break;
             case 'SIGNAL_START_THE_GAME':
                 clean();
-                player = PIXI.Sprite.from(loader.resources['bunny'].texture);
-                player.anchor.set(0.5);
-                player.x = 0;
-                player.y = 0;
+                player = new Player();
                 app.stage.addChild(player);
                 app.ticker.add(appLoop);
                 break;
@@ -119,7 +83,7 @@ function startGame() {
                 otherPlayerSocketInfo = response.info.others;
                 bulletsSocketInfo = response.info.bullets;
                 othersBulletsSocketInfo = response.info.othersBullets;
-                 console.log(response.info.othersBullets);
+                console.log(response.info.othersBullets);
                 break;
         }
     };
@@ -158,10 +122,10 @@ function clean() {
 }
 
 function appLoop() {
-    moveObject(playerSocketInfo,player)
+    moveObject(playerSocketInfo, player)
     for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
         if (!otherPlayers[key]) {
-            otherPlayers[key] = createPlayer()
+            otherPlayers[key] = new Player();
             app.stage.addChild(otherPlayers[key]);
         } else {
             moveObject(value, otherPlayers[key]);
@@ -171,7 +135,7 @@ function appLoop() {
 
     for (let [key, value] of Object.entries(bulletsSocketInfo)) {
         if (!bullets[key]) {
-            bullets[key] = createBullet(value,false);
+            bullets[key] = createBullet(value, false);
             app.stage.addChild(bullets[key]);
         } else {
             moveObject(value, bullets[key]);
@@ -180,7 +144,7 @@ function appLoop() {
 
     for (let [key, value] of Object.entries(othersBulletsSocketInfo)) {
         if (!othersBullets[key]) {
-            othersBullets[key] = createBullet(value,true);
+            othersBullets[key] = createBullet(value, true);
             app.stage.addChild(othersBullets[key]);
         } else {
             moveObject(value, othersBullets[key]);
@@ -235,21 +199,11 @@ function appLoop() {
     socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
 }
 
-function createBullet(bulletSocket,isEnemy) {
-    let bullet = new PIXI.Sprite.from(isEnemy ? loader.resources['bulletEnemies'].texture : loader.resources['bullet'].texture);
-    bullet.anchor.set(0.5);
-    bullet.dead = false;
+function createBullet(bulletSocket, isEnemy) {
+    let bullet = new Bullet(isEnemy);
     bullet.x = bulletSocket.x;
     bullet.y = bulletSocket.y;
     return bullet;
-}
-
-function createPlayer() {
-    let player = PIXI.Sprite.from(loader.resources['bunny'].texture);
-    player.anchor.set(0.5);
-    player.x = 0;
-    player.y = 0;
-    return player
 }
 
 function moveObject(objectSocket, object) {
@@ -266,6 +220,57 @@ function moveObject(objectSocket, object) {
     }
     if (y < 0) {
         object.y = Math.floor(object.y + y / 2);
+    }
+}
+
+class Lobby extends PIXI.Text {
+
+    lobbyId
+
+    constructor(text, style, canvas) {
+        super(text, style, canvas);
+        this.interactive = true;
+        this.alpha = 0.2;
+        this.style = new PIXI.TextStyle({
+            fill: 0x223AFF,
+            fontSize: 15
+        });
+
+        this.mouseover = function () {
+            this.alpha = 1;
+        };
+        this.mouseout = function () {
+            this.alpha = 0.2;
+        };
+        this.click = function () {
+            if (this.lobbyId !== undefined) {
+                socket.send('{"type":"newPlayer","lobby":"' + this.lobbyId.toString() + '","payload":{"name":"' + document.getElementById("username").value + '"}}');
+            } else {
+                socket.send('{"type":"newPlayer","payload":{"name":"' + document.getElementById("username").value + '"}}');
+            }
+        };
+        this.setCoordinates = function (i) {
+            this.x = 10;
+            this.y = (i - 1) * 15 + 3;
+        }
+    }
+}
+class Player extends PIXI.Sprite {
+    constructor() {
+        super();
+        this.texture = loader.resources['bunny'].texture
+        this.anchor.set(0.5);
+        this.x = 0;
+        this.y = 0;
+    }
+}
+
+class Bullet extends PIXI.Sprite {
+    constructor(isEnemy) {
+        super();
+        this.texture = isEnemy ? loader.resources['bulletEnemies'].texture : loader.resources['bullet'].texture;
+        this.anchor.set(0.5);
+        this.dead = false;
     }
 }
 
