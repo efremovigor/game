@@ -28,6 +28,7 @@ const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
 
 const MaxUserInLobby = 4
 const BulletSpeed = 5
+const MaxDistanceBulletOutScreen = BulletSpeed * 10
 const PlayerSpeed = 5
 
 var Connections = make(map[string]*PlayerConnection)

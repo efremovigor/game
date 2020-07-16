@@ -44128,6 +44128,7 @@ let PIXI = require('pixi.js');
 let loader = PIXI.Loader.shared;
 loader.add('bunny', 'static/bunny.png');
 loader.add('bullet', 'static/bullet.png');
+loader.add('bulletEnemies', 'static/bulletEnemies.png');
 loader.load();
 
 let app;
@@ -44244,7 +44245,7 @@ function startGame() {
                 otherPlayerSocketInfo = response.info.others;
                 bulletsSocketInfo = response.info.bullets;
                 othersBulletsSocketInfo = response.info.othersBullets;
-                // console.log(response.info);
+                 console.log(response.info.othersBullets);
                 break;
         }
     };
@@ -44283,69 +44284,46 @@ function clean() {
 }
 
 function appLoop() {
-    let x = playerSocketInfo.x - player.x;
-    let y = playerSocketInfo.y - player.y;
-    if (x > 0) {
-        player.x = Math.floor(player.x + x / 2);
-    }
-    if (x < 0) {
-        player.x = Math.floor(player.x + x / 2);
-    }
-    if (y > 0) {
-        player.y = Math.floor(player.y + y / 2);
-    }
-    if (y < 0) {
-        player.y = Math.floor(player.y + y / 2);
-    }
+    moveObject(playerSocketInfo,player)
     for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
         if (!otherPlayers[key]) {
-            otherPlayers[key] = PIXI.Sprite.from(loader.resources['bunny'].texture);
-            otherPlayers[key].anchor.set(0.5);
-            otherPlayers[key].x = 0;
-            otherPlayers[key].y = 0;
+            otherPlayers[key] = createPlayer()
             app.stage.addChild(otherPlayers[key]);
         } else {
-            let x = value.x - otherPlayers[key].x;
-            let y = value.y - otherPlayers[key].y;
-            if (x > 0) {
-                otherPlayers[key].x = Math.floor(otherPlayers[key].x + x / 2);
-            }
-            if (x < 0) {
-                otherPlayers[key].x = Math.floor(otherPlayers[key].x + x / 2);
-            }
-            if (y > 0) {
-                otherPlayers[key].y = Math.floor(otherPlayers[key].y + y / 2);
-            }
-            if (y < 0) {
-                otherPlayers[key].y = Math.floor(otherPlayers[key].y + y / 2);
-            }
+            moveObject(value, otherPlayers[key]);
         }
         otherPlayers[key].getLastTime = Date.now();
     }
 
     for (let [key, value] of Object.entries(bulletsSocketInfo)) {
         if (!bullets[key]) {
-            bullets[key] =  new PIXI.Sprite.from(loader.resources['bullet'].texture);
-            bullets[key].anchor.set(0.5);
-            bullets[key].dead = false;
-            bullets[key].x = value.x;
-            bullets[key].y = value.y;
+            bullets[key] = createBullet(value,false);
             app.stage.addChild(bullets[key]);
         } else {
-            let x = value.x - bullets[key].x;
-            let y = value.y - bullets[key].y;
-            if (x > 0) {
-                bullets[key].x = Math.floor(bullets[key].x + x / 2);
-            }
-            if (x < 0) {
-                bullets[key].x = Math.floor(bullets[key].x + x / 2);
-            }
-            if (y > 0) {
-                bullets[key].y = Math.floor(bullets[key].y + y / 2);
-            }
-            if (y < 0) {
-                bullets[key].y = Math.floor(bullets[key].y + y / 2);
-            }
+            moveObject(value, bullets[key]);
+        }
+    }
+
+    for (let [key, value] of Object.entries(othersBulletsSocketInfo)) {
+        if (!othersBullets[key]) {
+            othersBullets[key] = createBullet(value,true);
+            app.stage.addChild(othersBullets[key]);
+        } else {
+            moveObject(value, othersBullets[key]);
+        }
+    }
+
+    for (let i = 0, c = bullets.length; i < c; i++) {
+        if (bullets[i] && bullets[i].dead) {
+            app.stage.removeChild(bullets[i]);
+            bullets.splice(i, 1);
+        }
+    }
+
+    for (let i = 0, c = othersBullets.length; i < c; i++) {
+        if (othersBullets[i] && othersBullets[i].dead) {
+            app.stage.removeChild(othersBullets[i]);
+            bullets.splice(i, 1);
         }
     }
 
@@ -44376,18 +44354,45 @@ function appLoop() {
         socket.send('{"type":"command","payload":{"name":"shoot","bullet":{"x":' + mousePosition.x.toString() + ',"y":' + mousePosition.y.toString() + '}}}');
     }
 
-    for (let i = 0, c = bullets.length; i < c; i++) {
-        if (bullets[i] && bullets[i].dead) {
-            app.stage.removeChild(bullets[i]);
-            bullets.splice(i, 1);
-        }
-    }
-
     if (dir === '') {
         return;
     }
 
     socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
+}
+
+function createBullet(bulletSocket,isEnemy) {
+    let bullet = new PIXI.Sprite.from(isEnemy ? loader.resources['bulletEnemies'].texture : loader.resources['bullet'].texture);
+    bullet.anchor.set(0.5);
+    bullet.dead = false;
+    bullet.x = bulletSocket.x;
+    bullet.y = bulletSocket.y;
+    return bullet;
+}
+
+function createPlayer() {
+    let player = PIXI.Sprite.from(loader.resources['bunny'].texture);
+    player.anchor.set(0.5);
+    player.x = 0;
+    player.y = 0;
+    return player
+}
+
+function moveObject(objectSocket, object) {
+    let x = objectSocket.x - object.x;
+    let y = objectSocket.y - object.y;
+    if (x > 0) {
+        object.x = Math.floor(object.x + x / 2);
+    }
+    if (x < 0) {
+        object.x = Math.floor(object.x + x / 2);
+    }
+    if (y > 0) {
+        object.y = Math.floor(object.y + y / 2);
+    }
+    if (y < 0) {
+        object.y = Math.floor(object.y + y / 2);
+    }
 }
 
 document.addEventListener('keydown', (event) => {

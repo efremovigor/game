@@ -87,11 +87,12 @@ func handleRequest(request lib.UserRequest) {
 					}
 					others[connection.Player.ID] = *connection.Player
 				}
+				game.Lock.Lock()
 				for sessionId, playerBullets := range game.Bullets {
 					for bulletKey, bulletGame := range playerBullets {
 						bulletGame.Bullet.X += bulletGame.XStep
 						bulletGame.Bullet.Y += bulletGame.YStep
-						if bulletGame.Bullet.X > lib.GameWidth+(lib.BulletSpeed*5) || bulletGame.Bullet.X < -lib.BulletSpeed*5 || bulletGame.Bullet.Y > lib.GameHeight+(lib.BulletSpeed*5) || bulletGame.Bullet.Y < -lib.BulletSpeed*5 {
+						if bulletGame.Bullet.X > lib.GameWidth+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.X < -lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y > lib.GameHeight+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y < -lib.MaxDistanceBulletOutScreen {
 							bulletGame.Deleted = true
 						}
 						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y}
@@ -101,10 +102,11 @@ func handleRequest(request lib.UserRequest) {
 							othersBullets[string(bulletKey[:])] = bullet
 						}
 					}
-
 				}
+				game.Lock.Unlock()
 				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others, PlayerBullets: bullets, OthersBullets: othersBullets}}
 				playerConnection.Connection.PushData(response)
+				game.Lock.Lock()
 				for _, playerBullets := range game.Bullets {
 					for bulletKey, bulletGame := range playerBullets {
 						if bulletGame.Deleted == true {
@@ -112,6 +114,7 @@ func handleRequest(request lib.UserRequest) {
 						}
 					}
 				}
+				game.Lock.Unlock()
 			}
 		}(playerConnection, game)
 
