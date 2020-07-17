@@ -29,19 +29,19 @@
       </div>
     </div>
 
-    <div hidden id="wait" class="view-element wait-view">
-      <div class="container">
-        <div style="transform: scale(0.75);">
-          <div class="cssload-thecube">
-            <div class="cssload-cube cssload-c1"></div>
-            <div class="cssload-cube cssload-c2"></div>
-            <div class="cssload-cube cssload-c4"></div>
-            <div class="cssload-cube cssload-c3"></div>
-          </div>
-        </div>
-        <h1 class="wait-view__header">Мы ищем вам компаньона</h1>
-      </div>
-    </div>
+
+<div hidden id="greet" class="view-element greet-view">
+	<div class="container">
+		<form class="greet-form">
+			<label for="username">Представьтесь</label>
+			<input type="text" class="greet-form__username-input" id="username" name="username" value="newPlayer"
+				   placeholder="Введите ваше имя"/>
+			<div class="greet-form__choose-buttons">
+				<input type="button" class="greet-form__choose-multi-button" id="choose-multi" value="Играть с другом">
+			</div>
+		</form>
+	</div>
+</div>
 
     <div hidden id="app" class="view-element game-view"></div>
 

@@ -27,6 +27,7 @@ const SignalStartTheGame = "SIGNAL_START_THE_GAME"
 const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
 
 const MaxUserInLobby = 4
+const MaxHp = 100
 const BulletSpeed = 5
 const MaxDistanceBulletOutScreen = BulletSpeed * 10
 const PlayerSpeed = 5
@@ -38,7 +39,6 @@ var UniGames = make(map[string]*Game)
 type PlayerConnection struct {
 	Connection *ConnectionReceiver
 	SessionId  string
-	Name       string
 	Request    chan LoginJsonRequest
 	InGame     bool
 	Player     *Player
@@ -119,9 +119,12 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 
 type Player struct {
 	ID          string `json:"id"`
+	Name        string `json:"name"`
 	X           int    `json:"x"`
 	Y           int    `json:"y"`
 	W           int    `json:"w"`
 	H           int    `json:"h"`
+	Hp          int    `json:"hp"`
+	MaxHp       int    `json:"maxHp"`
 	LatestShoot int64
 }
