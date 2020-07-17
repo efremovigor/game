@@ -48,13 +48,13 @@ func handleRequest(request lib.UserRequest) {
 	case lib.RequestTypeLobbyList:
 		response := ResponseLobbyList{Type: lib.SignalLobbyList, Lobbies: []LobbyInfo{}}
 		for id, game := range lib.UniGames {
-			response.Lobbies = append(response.Lobbies, LobbyInfo{Max: lib.MaxUserInLobby, Free: lib.MaxUserInLobby - len(game.Connection), Id: id, Title: lib.Connections[id].Name})
+			response.Lobbies = append(response.Lobbies, LobbyInfo{Max: lib.MaxUserInLobby, Free: lib.MaxUserInLobby - len(game.Connection), Id: id, Title: lib.Connections[id].Player.Name})
 		}
 		playerConnection.Connection.PushData(response)
 	case lib.RequestTypeNewPlayer:
 		var game *lib.Game
 		playerConnection.InGame = true
-		playerConnection.Player = &lib.Player{X: 15, Y: 15, W: 20, H: 20, ID: playerConnection.SessionId}
+		playerConnection.Player = &lib.Player{X: 15, Y: 15, W: 20, H: 20, ID: playerConnection.SessionId, Name: request.Request.Payload.Name}
 		if request.Request.Lobby != "" {
 			found, ok := lib.Games[request.Request.Lobby]
 			if ok && len(found.Connection) < lib.MaxUserInLobby {
@@ -70,7 +70,7 @@ func handleRequest(request lib.UserRequest) {
 		connections := game.Connection
 		connections[playerConnection.SessionId] = playerConnection
 
-		response := ResponseInfoState{Type: lib.SignalStartTheGame}
+		response := ResponseInfoState{Type: lib.SignalStartTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player}}
 		playerConnection.Connection.PushData(response)
 
 		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
@@ -145,7 +145,7 @@ func handleRequest(request lib.UserRequest) {
 func getPlayConnection(request lib.UserRequest) *lib.PlayerConnection {
 	var playerConnection, ok = lib.Connections[request.SessionId]
 	if !ok {
-		playerConnection = &lib.PlayerConnection{Name: request.Request.Payload.Name, Connection: request.Receiver, Request: make(chan lib.LoginJsonRequest), SessionId: request.SessionId}
+		playerConnection = &lib.PlayerConnection{Connection: request.Receiver, Request: make(chan lib.LoginJsonRequest), SessionId: request.SessionId}
 		lib.Connections[request.SessionId] = playerConnection
 	}
 	return playerConnection
@@ -154,6 +154,7 @@ func getPlayConnection(request lib.UserRequest) *lib.PlayerConnection {
 func main() {
 	lib.RequestChan = make(chan lib.UserRequest)
 
+	fmt.Print("Listening to 127.0.0.1:3000")
 	go lib.RunServer("127.0.0.1:3000", lib.RequestChan)
 	for {
 		select {

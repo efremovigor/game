@@ -44200,7 +44200,7 @@ function startGame() {
                 break;
             case 'SIGNAL_START_THE_GAME':
                 clean();
-                player = new Player();
+                player = createPlayer(response.info.player);
                 app.stage.addChild(player);
                 app.ticker.add(appLoop);
                 break;
@@ -44209,7 +44209,6 @@ function startGame() {
                 otherPlayerSocketInfo = response.info.others;
                 bulletsSocketInfo = response.info.bullets;
                 othersBulletsSocketInfo = response.info.othersBullets;
-                console.log(response.info.othersBullets);
                 break;
         }
     };
@@ -44251,7 +44250,7 @@ function appLoop() {
     moveObject(playerSocketInfo, player)
     for (let [key, value] of Object.entries(otherPlayerSocketInfo)) {
         if (!otherPlayers[key]) {
-            otherPlayers[key] = new Player();
+            otherPlayers[key] = createPlayer(value);
             app.stage.addChild(otherPlayers[key]);
         } else {
             moveObject(value, otherPlayers[key]);
@@ -44347,6 +44346,22 @@ function moveObject(objectSocket, object) {
     if (y < 0) {
         object.y = Math.floor(object.y + y / 2);
     }
+}
+
+function createPlayer(objectSocket) {
+    let container = new PIXI.Container();
+    let player = new Player();
+    // let HpLine = new Pixi.
+    let title = new PIXI.Text(objectSocket.name);
+    title.style = new PIXI.TextStyle({
+        fill: 0x30728,
+        fontSize: 10
+    });
+    title.y = -35
+    title.x = -15
+    container.addChild(player);
+    container.addChild(title);
+    return container
 }
 
 class Lobby extends PIXI.Text {

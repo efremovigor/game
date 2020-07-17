@@ -38,7 +38,6 @@ var UniGames = make(map[string]*Game)
 type PlayerConnection struct {
 	Connection *ConnectionReceiver
 	SessionId  string
-	Name       string
 	Request    chan LoginJsonRequest
 	InGame     bool
 	Player     *Player
@@ -119,9 +118,11 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 
 type Player struct {
 	ID          string `json:"id"`
+	Name        string `json:"name"`
 	X           int    `json:"x"`
 	Y           int    `json:"y"`
 	W           int    `json:"w"`
 	H           int    `json:"h"`
+	Hp          int    `json:"hp"`
 	LatestShoot int64
 }
