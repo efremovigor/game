@@ -4,8 +4,10 @@ module.exports = {
   output: {
     filename: "../../static/js/bundle.js",
   },
+/*
   devServer: {
     contentBase: "../",
   },
+*/
   devtool: 'inline-source-map'
 };
