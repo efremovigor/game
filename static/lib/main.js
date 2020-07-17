@@ -232,8 +232,26 @@ function createPlayer(objectSocket) {
     });
     title.y = -35
     title.x = -15
+    //
+
+    let containerHp = new PIXI.Container();
+    let maxHp = new PIXI.Graphics();
+
+    maxHp.beginFill(0x4e4747);
+    maxHp.drawRect(-20, -20, 5, 40);
+    maxHp.endFill();
+    let hp = new PIXI.Graphics();
+
+    hp.beginFill(0xDE3249);
+    hp.drawRect(-20, -20, 5, 40/100*objectSocket.hp);
+    hp.endFill();
+
+    containerHp.addChild(maxHp);
+    containerHp.addChild(hp);
+    containerHp.rotation = 3.15
     container.addChild(player);
     container.addChild(title);
+    container.addChild(containerHp);
     return container
 }
 

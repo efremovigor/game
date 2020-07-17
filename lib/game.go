@@ -27,6 +27,7 @@ const SignalStartTheGame = "SIGNAL_START_THE_GAME"
 const SignalInfoTheGame = "SIGNAL_INFO_THE_GAME"
 
 const MaxUserInLobby = 4
+const MaxHp = 100
 const BulletSpeed = 5
 const MaxDistanceBulletOutScreen = BulletSpeed * 10
 const PlayerSpeed = 5
@@ -124,5 +125,6 @@ type Player struct {
 	W           int    `json:"w"`
 	H           int    `json:"h"`
 	Hp          int    `json:"hp"`
+	MaxHp       int    `json:"maxHp"`
 	LatestShoot int64
 }
