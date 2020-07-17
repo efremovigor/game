@@ -188,6 +188,8 @@ function appLoop() {
     }
 
     if (keysPressed['Space']) {
+        // player.ContainerHp.ChangeHp(player.ContainerHp.playerHp-10)
+        // player.ContainerHp.RenderHp(player.ContainerHp.playerHp)
         socket.send('{"type":"command","payload":{"name":"shoot","bullet":{"x":' + mousePosition.x.toString() + ',"y":' + mousePosition.y.toString() + '}}}');
     }
 
@@ -223,7 +225,7 @@ function moveObject(objectSocket, object) {
 }
 
 function createPlayer(objectSocket) {
-    let container = new PIXI.Container();
+    let container = new ContainerPlayer();
     let player = new Player();
     let title = new PIXI.Text(objectSocket.name);
     title.style = new PIXI.TextStyle({
@@ -232,26 +234,11 @@ function createPlayer(objectSocket) {
     });
     title.y = -35
     title.x = -15
-    //
 
-    let containerHp = new PIXI.Container();
-    let maxHp = new PIXI.Graphics();
-
-    maxHp.beginFill(0x4e4747);
-    maxHp.drawRect(-20, -20, 5, 40);
-    maxHp.endFill();
-    let hp = new PIXI.Graphics();
-
-    hp.beginFill(0xDE3249);
-    hp.drawRect(-20, -20, 5, 40/100*objectSocket.hp);
-    hp.endFill();
-
-    containerHp.addChild(maxHp);
-    containerHp.addChild(hp);
-    containerHp.rotation = 3.15
-    container.addChild(player);
-    container.addChild(title);
-    container.addChild(containerHp);
+    let containerHp = new PlayerHpContainer(objectSocket.hp,objectSocket.maxHp);
+    container.SetPlayer(player);
+    container.SetTitle(title);
+    container.SetContainerHp(containerHp);
     return container
 }
 
@@ -287,6 +274,63 @@ class Lobby extends PIXI.Text {
         }
     }
 }
+
+class ContainerPlayer extends PIXI.Container{
+    player
+    title
+    ContainerHp
+
+    SetPlayer = function(player){
+        this.player = player
+        this.addChild(player)
+    }
+
+    SetTitle = function(title){
+        this.title = title
+        this.addChild(title)
+    }
+
+    SetContainerHp = function(containerHp){
+        this.ContainerHp = containerHp
+        this.addChild(containerHp)
+    }
+}
+class PlayerHpContainer extends PIXI.Container {
+    playerHp
+    playerMaxHp
+
+    constructor(playerHp, playerMaxHp) {
+        super();
+        this.playerHp = playerHp
+        this.playerMaxHp = playerMaxHp
+        this.RenderHp()
+    }
+
+    ChangeHp = function(hp){
+        if (hp < 0){
+            return;
+        }
+        this.playerHp = hp
+    }
+
+    RenderHp = function () {
+        let maxHp = new PIXI.Graphics();
+
+        maxHp.beginFill(0x4e4747);
+        maxHp.drawRect(-20, -20, 5, 40);
+        maxHp.endFill();
+        let hp = new PIXI.Graphics();
+
+        hp.beginFill(0xDE3249);
+        hp.drawRect(-20, -20, 5, 40 / this.playerMaxHp * this.playerHp);
+        hp.endFill();
+
+        this.addChild(maxHp);
+        this.addChild(hp);
+        this.rotation = 3.15
+    }
+}
+
 class Player extends PIXI.Sprite {
     constructor() {
         super();
