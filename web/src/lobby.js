@@ -21,17 +21,14 @@ export class Lobby extends Text {
     this.click = function () {
       if (this.lobbyId !== undefined) {
         socket.send(
-          '{"type":"newPlayer","lobby":"' +
-            this.lobbyId.toString() +
-            '","payload":{"name":"' +
-            document.getElementById("username").value +
-            '"}}'
+          `{"type":"newPlayer","lobby":"${this.lobbyId.toString()}",` +
+            `"payload":{"name":"${document.getElementById("username").value}"}}`
         );
       } else {
         socket.send(
-          '{"type":"newPlayer","payload":{"name":"' +
-            document.getElementById("username").value +
-            '"}}'
+          `{"type":"newPlayer","payload":{"name":"${
+            document.getElementById("username").value
+          }"}}`
         );
       }
     };

@@ -33,8 +33,8 @@ function startGame() {
   document.getElementById("app").hidden = false;
 
   socket = new WebSocket("ws://127.0.0.1:3000/ws");
-  socket.onmessage = function (event) {
-    const messageText = event.data;
+  socket.onmessage = function (e) {
+    const messageText = e.data;
     // const message = JSON.parse(messageText);
     // console.log(message);
   };
@@ -66,14 +66,9 @@ function startGame() {
         let i = 1;
         response.lobbies.forEach(function (element) {
           let lobbyLink = new Lobby(
-            i.toString() +
-              "." +
-              element.title +
-              "(" +
-              (element.max - element.free).toString() +
-              "/" +
-              element.max.toString() +
-              ")"
+            `${i.toString()}.${element.title}(${(
+              element.max - element.free
+            ).toString()}/${element.max.toString()})`
           );
           lobbyLink.setCoordinates(i);
           lobbyLink.lobbyId = element.id;
@@ -204,11 +199,7 @@ function appLoop() {
     // player.ContainerHp.ChangeHp(player.ContainerHp.playerHp-10)
     // player.ContainerHp.RenderHp(player.ContainerHp.playerHp)
     socket.send(
-      '{"type":"command","payload":{"name":"shoot","bullet":{"x":' +
-        mousePosition.x.toString() +
-        ',"y":' +
-        mousePosition.y.toString() +
-        "}}}"
+      `{"type":"command","payload":{"name":"shoot","bullet":{"x":${mousePosition.x.toString()},"y":${mousePosition.y.toString()}}}}`
     );
   }
 
@@ -216,7 +207,7 @@ function appLoop() {
     return;
   }
 
-  socket.send('{"type":"command","payload":{"name":"' + dir + '"}}');
+  socket.send(`{"type":"command","payload":{"name":"${dir}"}}`);
 }
 
 function createBullet(bulletSocket, isEnemy) {
