@@ -1,4 +1,5 @@
 import { Text, TextStyle } from "pixi.js";
+import { socket } from "./index.js";
 
 export class Lobby extends Text {
   //lobbyId

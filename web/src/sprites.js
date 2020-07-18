@@ -1,4 +1,5 @@
 import { Sprite } from "pixi.js";
+import { loader } from "./index.js";
 
 export class Player extends Sprite {
   constructor() {

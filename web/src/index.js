@@ -1,9 +1,11 @@
-import { Loader, Text, TextStyle } from "pixi.js";
+import { Loader, Text, TextStyle,Application } from "pixi.js";
 import { Lobby } from "./lobby";
 import { Player, Bullet } from "./sprites";
 import { ContainerPlayer, PlayerHpContainer } from "./containers";
 
-let loader = Loader.shared;
+export let socket;
+export let loader = Loader.shared;
+
 loader.add("bunny", "static/img/bunny.png");
 loader.add("bullet", "static/img/bullet.png");
 loader.add("bulletEnemies", "static/img/enemiesBullet.png");
@@ -17,7 +19,6 @@ let playerSocketInfo = {
 };
 let otherPlayers = {};
 let otherPlayerSocketInfo = {};
-let socket;
 let keysPressed = {};
 let mousePosition = { x: 0, y: 0 };
 let bullets = [];
@@ -48,7 +49,7 @@ function startGame() {
     let response = JSON.parse(event.data);
     switch (response.type) {
       case "SIGNAL_CONF_THE_GAME":
-        app = new PIXI.Application({
+        app = new Application({
           width: response.conf.width,
           height: response.conf.height,
           backgroundColor: 0x53b4ff,
@@ -245,10 +246,9 @@ function createPlayer(objectSocket) {
   title.y = -35;
   title.x = -15;
 
-  let containerHP = new PlayerHpContainer(objectSocket.hp, objectSocket.maxHp);
   container.SetPlayer(player);
   container.SetTitle(title);
-  container.SetContainerHp(containerHp);
+  container.SetContainerHp(new PlayerHpContainer(objectSocket.hp, objectSocket.maxHp));
   return container;
 }
 
