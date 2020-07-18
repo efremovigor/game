@@ -1,5 +1,17 @@
+# webstorm config dir
 .idea/
+
+# log files
+*.log
+
+
+*.out
+
+# session status files
+session/session_*
+
+# javascript 
 node_modules/
 static/**/*.pug.js
-*.log
-*.out
+package-lock.json
+static/js/bundle.js

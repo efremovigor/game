@@ -1,0 +1,20 @@
+{
+  "name": "try-to-game",
+  "version": "1.0.0",
+  "description": "Backend на Go - Igor Efremov",
+  "main": "src/main.js",
+  "dependencies": {
+    "pixi.js": "^5.3.0"
+  },
+  "scripts": {
+    "build": "./node_modules/.bin/webpack",
+    "watch": "./node_modules/.bin/webpack -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.12"
+  }
+}

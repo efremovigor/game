@@ -58,7 +58,7 @@ func getSession(r *http.Request) (session *sessions.Session) {
 }
 
 func webHandler(w http.ResponseWriter, _ *http.Request) {
-	tmpl, _ := template.ParseFiles("static/index.html")
+	tmpl, _ := template.ParseFiles("./static/index.html")
 	if err := tmpl.Execute(w, ""); err != nil {
 		log.Fatalf("404: %v", err)
 	}
