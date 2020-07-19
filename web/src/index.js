@@ -89,15 +89,9 @@ function startGame() {
                 break;
             case "SIGNAL_INFO_THE_GAME":
                 playerSocketInfo = response.info.player;
-                for (let [key, value] of Object.entries(response.info.others)) {
-                    otherPlayerSocketInfo[key] = value
-                }
-                for (let [key, value] of Object.entries(response.info.bullets)) {
-                    bulletsSocketInfo[key] = value
-                }
-                for (let [key, value] of Object.entries(response.info.othersBullets)) {
-                    othersBulletsSocketInfo[key] = value
-                }
+                otherPlayerSocketInfo = response.info.others;
+                bulletsSocketInfo = response.info.bullets;
+                othersBulletsSocketInfo = response.info.othersBullets;
                 break;
         }
     };
@@ -137,12 +131,9 @@ function clean() {
 
 function appLoop() {
     moveObject(playerSocketInfo, player);
-    player.ContainerHp.ChangeHp(playerSocketInfo.hp)
+    player.ContainerHp.ChangeHp(playerSocketInfo.hp);
 
-    for (const property in bulletsSocketInfo) {
-
-    }
-        otherPlayerSocketInfo.forEach(function (item,index) {
+    for (let [index, item] of Object.entries(otherPlayerSocketInfo)) {
         if (!otherPlayers[index]) {
             otherPlayers[index] = createPlayer(item);
             app.stage.addChild(otherPlayers[index]);
@@ -151,49 +142,36 @@ function appLoop() {
         }
         otherPlayers[index].getLastTime = Date.now();
         otherPlayers[index].ContainerHp.ChangeHp(item.hp)
-    });
+    }
 
-    bulletsSocketInfo.forEach(function (item,index,object) {
-        console.log(item);
 
+    for (let [index, item] of Object.entries(bulletsSocketInfo)) {
         if (!bullets[index]) {
             bullets[index] = createBullet(item, false);
             app.stage.addChild(bullets[index]);
         } else {
             moveObject(item, bullets[index]);
+            console.log(item);
             if (item.deleted) {
-                object.splice(index,1);
+                app.stage.removeChild(bullets[index]);
+                delete bullets[index];
             }
         }
-    });
+    }
 
-    othersBulletsSocketInfo.forEach(function (item,index,object) {
+    for (let [index, item] of Object.entries(othersBulletsSocketInfo)) {
         if (!othersBullets[index]) {
             othersBullets[index] = createBullet(item, false);
             app.stage.addChild(othersBullets[index]);
         } else {
             moveObject(item, othersBullets[index]);
+            console.log(item);
             if (item.deleted) {
-                object.splice(index,1);
+                app.stage.removeChild(othersBullets[index]);
+                delete othersBullets[index];
             }
         }
-    });
-
-    // for (let i = 0, c = bullets.length; i < c; i++) {
-    //     console.log(bullets[i]);
-    //     if (bullets[i] && bullets[i].deleted) {
-    //         app.stage.removeChild(bullets[i]);
-    //         bullets.splice(i, 1);
-    //     }
-    // }
-    //
-    // for (let i = 0, c = othersBullets.length; i < c; i++) {
-    //     console.log(othersBullets[i]);
-    //     if (othersBullets[i] && othersBullets[i].deleted) {
-    //         app.stage.removeChild(othersBullets[i]);
-    //         bullets.splice(i, 1);
-    //     }
-    // }
+    }
 
     let dir = "";
     if (keysPressed["KeyD"] && keysPressed["KeyD"] === true) {

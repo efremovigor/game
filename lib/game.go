@@ -61,6 +61,28 @@ type BulletGame struct {
 	Deleted bool
 }
 
+func (bullet *BulletGame) MoveBullet(connections map[string]*PlayerConnection, sessionId string) {
+	for i := 0; i < 10; i++ {
+		bullet.Bullet.X += bullet.XStep / 10
+		bullet.Bullet.Y += bullet.YStep / 10
+		if bullet.Bullet.X > GameWidth+MaxDistanceBulletOutScreen || bullet.Bullet.X < -MaxDistanceBulletOutScreen || bullet.Bullet.Y > GameHeight+MaxDistanceBulletOutScreen || bullet.Bullet.Y < -MaxDistanceBulletOutScreen {
+			bullet.Deleted = true
+		} else {
+			for _, player := range connections {
+				distance := math.Sqrt(math.Pow(bullet.Bullet.Y-float64(player.Player.Y), 2) + math.Pow(bullet.Bullet.X-float64(player.Player.X), 2))
+				if distance < 15 && bullet.Deleted == false && sessionId != player.SessionId {
+					bullet.Deleted = true
+					player.Player.Hp -= 10
+					if player.Player.Hp < 0 {
+						player.Player.Hp = 0
+					}
+					return
+				}
+			}
+		}
+	}
+}
+
 func (playerConnection *PlayerConnection) Shoot(game *Game, requestBullet Bullet) {
 	game.Lock.Lock()
 	defer game.Lock.Unlock()
