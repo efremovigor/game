@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"game/lib"
 	"strings"
 	"time"
+	"try-to-game/lib"
 )
 
 type ResponseInfoState struct {
