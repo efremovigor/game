@@ -36,8 +36,9 @@ type Payload struct {
 }
 
 type Bullet struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
+	X       float64 `json:"x"`
+	Y       float64 `json:"y"`
+	Deleted bool    `json:"deleted"`
 }
 
 type ConnectionReceiver struct {

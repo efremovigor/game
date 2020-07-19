@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"try-to-game/lib"
@@ -90,12 +91,29 @@ func handleRequest(request lib.UserRequest) {
 				game.Lock.Lock()
 				for sessionId, playerBullets := range game.Bullets {
 					for bulletKey, bulletGame := range playerBullets {
-						bulletGame.Bullet.X += bulletGame.XStep
-						bulletGame.Bullet.Y += bulletGame.YStep
-						if bulletGame.Bullet.X > lib.GameWidth+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.X < -lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y > lib.GameHeight+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y < -lib.MaxDistanceBulletOutScreen {
-							bulletGame.Deleted = true
+						if bulletGame.Deleted {
+							continue
 						}
-						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y}
+						for i := 0; i < 10 && bulletGame.Deleted == false; i++ {
+							bulletGame.Bullet.X += bulletGame.XStep / 10
+							bulletGame.Bullet.Y += bulletGame.YStep / 10
+							if bulletGame.Bullet.X > lib.GameWidth+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.X < -lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y > lib.GameHeight+lib.MaxDistanceBulletOutScreen || bulletGame.Bullet.Y < -lib.MaxDistanceBulletOutScreen {
+								bulletGame.Deleted = true
+							} else {
+								for _, player := range connections {
+									distance := math.Sqrt(math.Pow(bulletGame.Bullet.Y-float64(player.Player.Y), 2) + math.Pow(bulletGame.Bullet.X-float64(player.Player.X), 2))
+									if distance < 15 && sessionId != player.SessionId {
+										bulletGame.Deleted = true
+										player.Player.Hp -= 10
+										if player.Player.Hp < 0 {
+											player.Player.Hp = 0
+										}
+										break
+									}
+								}
+							}
+						}
+						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y, Deleted: bulletGame.Deleted}
 						if sessionId == playerConnection.SessionId {
 							bullets[string(bulletKey[:])] = bullet
 						} else {

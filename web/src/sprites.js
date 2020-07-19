@@ -18,6 +18,6 @@ export class Bullet extends Sprite {
       ? loader.resources["bulletEnemies"].texture
       : loader.resources["bullet"].texture;
     this.anchor.set(0.5);
-    this.dead = false;
+    this.deleted = false;
   }
 }

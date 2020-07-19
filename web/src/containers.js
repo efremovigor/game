@@ -1,9 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 
 export class ContainerPlayer extends Container {
-  //player
-  //title
-  //ContainerHp
 
   SetPlayer(player) {
     this.player = player;
@@ -22,8 +19,6 @@ export class ContainerPlayer extends Container {
 }
 
 export class PlayerHpContainer extends Container {
-  // playerHp
-  // playerMaxHp
 
   constructor(playerHp, playerMaxHp) {
     super();
@@ -37,6 +32,7 @@ export class PlayerHpContainer extends Container {
       return;
     }
     this.playerHp = hp;
+    this.RenderHp();
   }
 
   RenderHp() {
