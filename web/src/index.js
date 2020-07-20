@@ -146,6 +146,12 @@ function appLoop() {
 
 
     for (let [index, item] of Object.entries(bulletsSocketInfo)) {
+        if(item.deleted){
+            if (bullets[index]){
+                app.stage.removeChild(bullets[index]);
+            }
+            continue;
+        }
         if (!bullets[index]) {
             bullets[index] = createBullet(item, false);
             app.stage.addChild(bullets[index]);
@@ -160,6 +166,12 @@ function appLoop() {
     }
 
     for (let [index, item] of Object.entries(othersBulletsSocketInfo)) {
+        if(item.deleted){
+            if (othersBullets[index]){
+                app.stage.removeChild(bullets[index]);
+            }
+            continue;
+        }
         if (!othersBullets[index]) {
             othersBullets[index] = createBullet(item, false);
             app.stage.addChild(othersBullets[index]);

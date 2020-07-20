@@ -102,15 +102,6 @@ func handleRequest(request lib.UserRequest) {
 				game.Lock.Unlock()
 				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others, PlayerBullets: bullets, OthersBullets: othersBullets}}
 				playerConnection.Connection.PushData(response)
-				game.Lock.Lock()
-				for _, playerBullets := range game.Bullets {
-					for bulletKey, bulletGame := range playerBullets {
-						if bulletGame.Deleted == true {
-							delete(playerBullets, bulletKey)
-						}
-					}
-				}
-				game.Lock.Unlock()
 			}
 		}(playerConnection, game)
 
@@ -133,6 +124,21 @@ func handleRequest(request lib.UserRequest) {
 				}
 			}
 		}(playerConnection)
+
+		go func(game *lib.Game) {
+			for {
+				time.Sleep(5000 * time.Millisecond)
+				game.Lock.Lock()
+				for _, playerBullets := range game.Bullets {
+					for bulletKey, bulletGame := range playerBullets {
+						if bulletGame.Deleted == true {
+							delete(playerBullets, bulletKey)
+						}
+					}
+				}
+				game.Lock.Unlock()
+			}
+		}(game)
 	case lib.RequestTypeNewCommand:
 		playerConnection.Request <- request.Request
 	}
