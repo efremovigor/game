@@ -31,6 +31,10 @@ const MaxHp = 100
 const BulletSpeed = 5
 const MaxDistanceBulletOutScreen = BulletSpeed * 10
 const PlayerSpeed = 5
+const PlayerWidth = 26
+const PlayerHeight = 37
+const PlayerStartPositionX = PlayerWidth/2 + 1
+const PlayerStartPositionY = PlayerHeight/2 + 1
 
 var Connections = make(map[string]*PlayerConnection)
 var Games = make(map[string]*Game)
@@ -118,23 +122,23 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 	switch command {
 	case CommandUp:
 		playerConnection.Player.Y -= PlayerSpeed
-		if playerConnection.Player.Y < 0 {
-			playerConnection.Player.Y = 0
+		if playerConnection.Player.Y < PlayerStartPositionY {
+			playerConnection.Player.Y = PlayerStartPositionY
 		}
 	case CommandDown:
 		playerConnection.Player.Y += PlayerSpeed
-		if playerConnection.Player.Y > game.Height-playerConnection.Player.H {
-			playerConnection.Player.Y = game.Height - playerConnection.Player.H
+		if playerConnection.Player.Y > game.Height-PlayerStartPositionY {
+			playerConnection.Player.Y = game.Height - PlayerStartPositionY
 		}
 	case CommandLeft:
 		playerConnection.Player.X -= PlayerSpeed
-		if playerConnection.Player.X < 0 {
-			playerConnection.Player.X = 0
+		if playerConnection.Player.X < PlayerStartPositionX {
+			playerConnection.Player.X = PlayerStartPositionX
 		}
 	case CommandRight:
 		playerConnection.Player.X += PlayerSpeed
-		if playerConnection.Player.X > game.Width-playerConnection.Player.W {
-			playerConnection.Player.X = game.Width - playerConnection.Player.W
+		if playerConnection.Player.X > game.Width-PlayerStartPositionY {
+			playerConnection.Player.X = game.Width - PlayerStartPositionY
 		}
 	}
 }

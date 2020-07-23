@@ -54,7 +54,7 @@ func handleRequest(request lib.UserRequest) {
 	case lib.RequestTypeNewPlayer:
 		var game *lib.Game
 		playerConnection.InGame = true
-		playerConnection.Player = &lib.Player{X: 15, Y: 15, W: 20, H: 20, ID: playerConnection.SessionId, Name: request.Request.Payload.Name, Hp: lib.MaxHp, MaxHp: lib.MaxHp}
+		playerConnection.Player = &lib.Player{X: lib.PlayerStartPositionX, Y: lib.PlayerStartPositionY, W: lib.PlayerWidth, H: lib.PlayerHeight, ID: playerConnection.SessionId, Name: request.Request.Payload.Name, Hp: lib.MaxHp, MaxHp: lib.MaxHp}
 		if request.Request.Lobby != "" {
 			found, ok := lib.Games[request.Request.Lobby]
 			if ok && len(found.Connection) < lib.MaxUserInLobby {
