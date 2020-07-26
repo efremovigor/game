@@ -16,6 +16,7 @@ type ResponseInfoStateInfo struct {
 	Others        map[string]lib.Player `json:"others"`
 	PlayerBullets map[string]lib.Bullet `json:"bullets"`
 	OthersBullets map[string]lib.Bullet `json:"othersBullets"`
+	Builds        []lib.Build           `json:"builds"`
 }
 
 type ResponseStartGameState struct {
@@ -70,7 +71,8 @@ func handleRequest(request lib.UserRequest) {
 		connections := game.Connection
 		connections[playerConnection.SessionId] = playerConnection
 
-		response := ResponseInfoState{Type: lib.SignalStartTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player}}
+		game.Builds = []lib.Build{lib.Build{X: 100, Y: 100, Width: 300, Height: 200, Type: 1}}
+		response := ResponseInfoState{Type: lib.SignalStartTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Builds: game.Builds}}
 		playerConnection.Connection.PushData(response)
 
 		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
@@ -90,7 +92,7 @@ func handleRequest(request lib.UserRequest) {
 				game.Lock.Lock()
 				for sessionId, playerBullets := range game.Bullets {
 					for bulletKey, bulletGame := range playerBullets {
-						bulletGame.MoveBullet(connections, sessionId)
+						bulletGame.MoveBullet(*game, sessionId)
 						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y, Deleted: bulletGame.Deleted}
 						if sessionId == playerConnection.SessionId {
 							bullets[string(bulletKey[:])] = bullet

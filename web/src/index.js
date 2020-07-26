@@ -1,4 +1,4 @@
-import {Application, Loader, Text, TextStyle} from "pixi.js";
+import {Application, Graphics, Loader, Text, TextStyle} from "pixi.js";
 import {Lobby} from "./lobby";
 import {Bullet, Player} from "./sprites";
 import {ContainerPlayer, PlayerHpContainer} from "./containers";
@@ -21,6 +21,7 @@ let otherPlayers = [];
 let otherPlayerSocketInfo = [];
 let keysPressed = {};
 let mousePosition = {x: 0, y: 0};
+let builds = [];
 let bullets = [];
 let bulletsSocketInfo = [];
 let othersBullets = [];
@@ -85,6 +86,17 @@ function startGame() {
                 clean();
                 player = createPlayer(response.info.player);
                 app.stage.addChild(player);
+
+                builds = response.info.builds;
+                for (let [index, item] of Object.entries(builds)) {
+                    let build = new Graphics();
+
+                    build.beginFill(0xC9CB17);
+                    build.drawRect(item.x, item.y, item.width, item.height);
+                    build.endFill();
+                    console.log(build);
+                    app.stage.addChild(build);
+                }
                 app.ticker.add(appLoop);
                 break;
             case "SIGNAL_INFO_THE_GAME":
@@ -157,7 +169,6 @@ function appLoop() {
             app.stage.addChild(bullets[index]);
         } else {
             moveObject(item, bullets[index]);
-            console.log(item);
             if (item.deleted) {
                 app.stage.removeChild(bullets[index]);
                 delete bullets[index];
@@ -177,7 +188,6 @@ function appLoop() {
             app.stage.addChild(othersBullets[index]);
         } else {
             moveObject(item, othersBullets[index]);
-            console.log(item);
             if (item.deleted) {
                 app.stage.removeChild(othersBullets[index]);
                 delete othersBullets[index];

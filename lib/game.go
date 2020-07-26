@@ -51,6 +51,7 @@ type PlayerConnection struct {
 type Game struct {
 	Connection map[string]*PlayerConnection
 	Bullets    map[string]map[[16]byte]*BulletGame
+	Builds     []Build
 	Width      int
 	Height     int
 	Lock       sync.Mutex
@@ -65,14 +66,14 @@ type BulletGame struct {
 	Deleted bool
 }
 
-func (bullet *BulletGame) MoveBullet(connections map[string]*PlayerConnection, sessionId string) {
+func (bullet *BulletGame) MoveBullet(game Game, sessionId string) {
 	for i := 0; i < 10; i++ {
 		bullet.Bullet.X += bullet.XStep / 10
 		bullet.Bullet.Y += bullet.YStep / 10
 		if bullet.Bullet.X > GameWidth+MaxDistanceBulletOutScreen || bullet.Bullet.X < -MaxDistanceBulletOutScreen || bullet.Bullet.Y > GameHeight+MaxDistanceBulletOutScreen || bullet.Bullet.Y < -MaxDistanceBulletOutScreen {
 			bullet.Deleted = true
 		} else {
-			for _, player := range connections {
+			for _, player := range game.Connection {
 				distance := math.Sqrt(math.Pow(bullet.Bullet.Y-float64(player.Player.Y), 2) + math.Pow(bullet.Bullet.X-float64(player.Player.X), 2))
 				if distance < 15 && bullet.Deleted == false && sessionId != player.SessionId {
 					bullet.Deleted = true
@@ -80,6 +81,12 @@ func (bullet *BulletGame) MoveBullet(connections map[string]*PlayerConnection, s
 					if player.Player.Hp < 0 {
 						player.Player.Hp = 0
 					}
+					return
+				}
+			}
+			for _, build := range game.Builds {
+				if float64(build.X) < bullet.Bullet.X && float64(build.Y) < bullet.Bullet.Y && float64(build.X+build.Width) > bullet.Bullet.X && float64(build.Y+build.Height) > bullet.Bullet.Y {
+					bullet.Deleted = true
 					return
 				}
 			}
@@ -119,28 +126,52 @@ func (playerConnection *PlayerConnection) Shoot(game *Game, requestBullet Bullet
 func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 	game.Lock.Lock()
 	defer game.Lock.Unlock()
+	x := playerConnection.Player.X
+	y := playerConnection.Player.Y
 	switch command {
 	case CommandUp:
-		playerConnection.Player.Y -= PlayerSpeed
-		if playerConnection.Player.Y < PlayerStartPositionY {
-			playerConnection.Player.Y = PlayerStartPositionY
+		y = playerConnection.Player.Y - PlayerSpeed
+		if y < PlayerStartPositionY {
+			y = playerConnection.Player.Y
 		}
 	case CommandDown:
-		playerConnection.Player.Y += PlayerSpeed
-		if playerConnection.Player.Y > game.Height-PlayerStartPositionY {
-			playerConnection.Player.Y = game.Height - PlayerStartPositionY
+		y = playerConnection.Player.Y + PlayerSpeed
+		if y > game.Height-PlayerStartPositionY {
+			y = game.Height - PlayerStartPositionY
 		}
 	case CommandLeft:
-		playerConnection.Player.X -= PlayerSpeed
-		if playerConnection.Player.X < PlayerStartPositionX {
-			playerConnection.Player.X = PlayerStartPositionX
+		x = playerConnection.Player.X - PlayerSpeed
+		if x < PlayerStartPositionX {
+			x = playerConnection.Player.X
 		}
 	case CommandRight:
-		playerConnection.Player.X += PlayerSpeed
-		if playerConnection.Player.X > game.Width-PlayerStartPositionY {
-			playerConnection.Player.X = game.Width - PlayerStartPositionY
+		x = playerConnection.Player.X + PlayerSpeed
+		if x > game.Width-PlayerStartPositionY {
+			x = game.Width - PlayerStartPositionY
 		}
 	}
+
+	for _, build := range game.Builds {
+		xBegin := x - (PlayerWidth / 2)
+		xEnd := x + (PlayerWidth / 2)
+		yBegin := y - (PlayerHeight / 2)
+		yEnd := y + (PlayerHeight / 2)
+		if build.X < xBegin && build.Y < yBegin && build.X+build.Width > xBegin && build.Y+build.Height > yBegin {
+			return
+		}
+		if build.X < xEnd && build.Y < yEnd && build.X+build.Width > xEnd && build.Y+build.Height > yEnd {
+			return
+		}
+		if build.X+build.Width > xBegin && build.X < xBegin && build.Y < yEnd && build.Y+build.Height > yEnd {
+			return
+		}
+		if build.X+build.Width > xEnd && build.X < xEnd && build.Y < yBegin && build.Y+build.Height > yBegin {
+			return
+		}
+	}
+
+	playerConnection.Player.X = x
+	playerConnection.Player.Y = y
 }
 
 type Player struct {
@@ -153,4 +184,12 @@ type Player struct {
 	Hp          int    `json:"hp"`
 	MaxHp       int    `json:"maxHp"`
 	LatestShoot int64
+}
+
+type Build struct {
+	Type   int `json:"type"`
+	X      int `json:"x"`
+	Y      int `json:"y"`
+	Width  int `json:"width"`
+	Height int `json:"height"`
 }
