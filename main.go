@@ -122,19 +122,21 @@ func handleRequest(request lib.UserRequest) {
 			enemy := &lib.Enemy{X: 600, Y: 600, W: 10, H: 10, Hp: 100, MaxHp: 100, Path: []lib.Node{}}
 			game.Enemies[md5.Sum([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))] = enemy
 
-			go func(enemy *lib.Enemy) {
+			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
 					time.Sleep(3000 * time.Millisecond)
-					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player}
+					fmt.Println("ищем путь")
+					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
+					fmt.Println("путь найден")
 					newPath := searching.Handle()
 					enemy.Path = newPath.GetPath()
 				}
-			}(enemy)
+			}(enemy, game)
 
-			go func(enemy *lib.Enemy) {
+			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
 					time.Sleep(10 * time.Millisecond)
-					for i := 0; i < 10; i++ {
+					for i := 0; i < 3; i++ {
 						if len(enemy.Path) > 0 {
 							enemy.X = enemy.Path[len(enemy.Path)-1:][0].X
 							enemy.Y = enemy.Path[len(enemy.Path)-1:][0].Y
@@ -142,7 +144,7 @@ func handleRequest(request lib.UserRequest) {
 						}
 					}
 				}
-			}(enemy)
+			}(enemy, game)
 
 		}(playerConnection, game)
 
