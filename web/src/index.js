@@ -26,6 +26,8 @@ let bullets = [];
 let bulletsSocketInfo = [];
 let othersBullets = [];
 let othersBulletsSocketInfo = [];
+let enemies = [];
+let enemiesSocketInfo = [];
 
 document.getElementById("greet").hidden = false;
 document.getElementById("choose-multi").addEventListener("click", startGame);
@@ -47,6 +49,7 @@ function startGame() {
     };
 
     socket.onmessage = function (event) {
+        // console.log(event.data)
         let response = JSON.parse(event.data);
         switch (response.type) {
             case "SIGNAL_CONF_THE_GAME":
@@ -94,7 +97,6 @@ function startGame() {
                     build.beginFill(0xC9CB17);
                     build.drawRect(item.x, item.y, item.width, item.height);
                     build.endFill();
-                    console.log(build);
                     app.stage.addChild(build);
                 }
                 app.ticker.add(appLoop);
@@ -104,6 +106,7 @@ function startGame() {
                 otherPlayerSocketInfo = response.info.others;
                 bulletsSocketInfo = response.info.bullets;
                 othersBulletsSocketInfo = response.info.othersBullets;
+                enemiesSocketInfo = response.info.enemies;
                 break;
         }
     };
@@ -156,10 +159,19 @@ function appLoop() {
         otherPlayers[index].ContainerHp.ChangeHp(item.hp)
     }
 
+    for (let [index, item] of Object.entries(enemiesSocketInfo)) {
+        if (!enemies[index]) {
+            enemies[index] = createEnemy(item);
+            app.stage.addChild(enemies[index]);
+        } else {
+            moveObject(item, enemies[index]);
+        }
+        // enemies[index].ContainerHp.ChangeHp(item.hp)
+    }
 
     for (let [index, item] of Object.entries(bulletsSocketInfo)) {
-        if(item.deleted){
-            if (bullets[index]){
+        if (item.deleted) {
+            if (bullets[index]) {
                 app.stage.removeChild(bullets[index]);
             }
             continue;
@@ -177,8 +189,8 @@ function appLoop() {
     }
 
     for (let [index, item] of Object.entries(othersBulletsSocketInfo)) {
-        if(item.deleted){
-            if (othersBullets[index]){
+        if (item.deleted) {
+            if (othersBullets[index]) {
                 app.stage.removeChild(bullets[index]);
             }
             continue;
@@ -267,6 +279,20 @@ function createPlayer(objectSocket) {
 
     container.SetPlayer(player);
     container.SetTitle(title);
+    container.SetContainerHp(new PlayerHpContainer(objectSocket.hp, objectSocket.maxHp));
+    return container;
+}
+
+function createEnemy(objectSocket) {
+    let container = new ContainerPlayer();
+    container.x = objectSocket.x;
+    container.y = objectSocket.y;
+    let enemy = new Graphics();
+    enemy.beginFill(0xCE0404);
+    enemy.drawRect(- (objectSocket.w / 2), -(objectSocket.h / 2), objectSocket.w, objectSocket.h);
+    enemy.endFill();
+    console.log(objectSocket);
+    container.SetPlayer(enemy);
     container.SetContainerHp(new PlayerHpContainer(objectSocket.hp, objectSocket.maxHp));
     return container;
 }

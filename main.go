@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"fmt"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ type ResponseInfoStateInfo struct {
 	PlayerBullets map[string]lib.Bullet `json:"bullets"`
 	OthersBullets map[string]lib.Bullet `json:"othersBullets"`
 	Builds        []lib.Build           `json:"builds"`
+	Enemies       map[string]lib.Enemy  `json:"enemies"`
 }
 
 type ResponseStartGameState struct {
@@ -64,7 +66,7 @@ func handleRequest(request lib.UserRequest) {
 		}
 		if game == nil {
 			connections := make(map[string]*lib.PlayerConnection)
-			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame)}
+			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame), Enemies: make(map[[16]byte]*lib.Enemy)}
 			lib.UniGames[playerConnection.SessionId] = game
 		}
 		lib.Games[playerConnection.SessionId] = game
@@ -82,6 +84,7 @@ func handleRequest(request lib.UserRequest) {
 				var others = make(map[string]lib.Player)
 				var bullets = make(map[string]lib.Bullet)
 				var othersBullets = make(map[string]lib.Bullet)
+				var enemies = make(map[string]lib.Enemy)
 				connections := game.Connection
 				for key, connection := range connections {
 					if key == playerConnection.SessionId {
@@ -92,7 +95,7 @@ func handleRequest(request lib.UserRequest) {
 				game.Lock.Lock()
 				for sessionId, playerBullets := range game.Bullets {
 					for bulletKey, bulletGame := range playerBullets {
-						bulletGame.MoveBullet(*game, sessionId)
+						bulletGame.MoveBullet(game, sessionId)
 						bullet := lib.Bullet{X: bulletGame.Bullet.X, Y: bulletGame.Bullet.Y, Deleted: bulletGame.Deleted}
 						if sessionId == playerConnection.SessionId {
 							bullets[string(bulletKey[:])] = bullet
@@ -101,10 +104,46 @@ func handleRequest(request lib.UserRequest) {
 						}
 					}
 				}
+
+				for id, enemy := range game.Enemies {
+					enemies[string(id[:])] = *enemy
+				}
+
+				if len(game.Enemies) == 0 {
+					// генерация врага
+				}
+
 				game.Lock.Unlock()
-				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others, PlayerBullets: bullets, OthersBullets: othersBullets}}
+				response := ResponseInfoState{Type: lib.SignalInfoTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Others: others, PlayerBullets: bullets, OthersBullets: othersBullets, Enemies: enemies}}
 				playerConnection.Connection.PushData(response)
 			}
+		}(playerConnection, game)
+		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
+			enemy := &lib.Enemy{X: 600, Y: 600, W: 10, H: 10, Hp: 100, MaxHp: 100, Path: []lib.Node{}}
+			game.Enemies[md5.Sum([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))] = enemy
+
+			go func(enemy *lib.Enemy) {
+				for {
+					time.Sleep(3000 * time.Millisecond)
+					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player}
+					newPath := searching.Handle()
+					enemy.Path = newPath.GetPath()
+				}
+			}(enemy)
+
+			go func(enemy *lib.Enemy) {
+				for {
+					time.Sleep(10 * time.Millisecond)
+					for i := 0; i < 10; i++ {
+						if len(enemy.Path) > 0 {
+							enemy.X = enemy.Path[len(enemy.Path)-1:][0].X
+							enemy.Y = enemy.Path[len(enemy.Path)-1:][0].Y
+							enemy.Path = enemy.Path[:len(enemy.Path)-1]
+						}
+					}
+				}
+			}(enemy)
+
 		}(playerConnection, game)
 
 		go func(playerConnection *lib.PlayerConnection) {

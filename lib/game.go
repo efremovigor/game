@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-const GameWidth = 800
-const GameHeight = 600
+const GameWidth = 1000
+const GameHeight = 900
 const RequestTypeNewCommand = "command"
 const RequestTypeNewPlayer = "newPlayer"
 const RequestTypeLobbyList = "lobbyList"
@@ -51,6 +51,7 @@ type PlayerConnection struct {
 type Game struct {
 	Connection map[string]*PlayerConnection
 	Bullets    map[string]map[[16]byte]*BulletGame
+	Enemies    map[[16]byte]*Enemy
 	Builds     []Build
 	Width      int
 	Height     int
@@ -66,7 +67,153 @@ type BulletGame struct {
 	Deleted bool
 }
 
-func (bullet *BulletGame) MoveBullet(game Game, sessionId string) {
+type Enemy struct {
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+	X                   int    `json:"x"`
+	Y                   int    `json:"y"`
+	W                   int    `json:"w"`
+	H                   int    `json:"h"`
+	Hp                  int    `json:"hp"`
+	MaxHp               int    `json:"maxHp"`
+	Destination         Node
+	LatestConsideration int64
+	Path                []Node
+}
+
+func (enemy Enemy) getPositionKey() string {
+	return fmt.Sprintf("%d%d", enemy.X, enemy.Y)
+}
+
+type Node struct {
+	X        int
+	Y        int
+	Distance float64
+	next     map[string]*Node
+	Back     *Node
+}
+
+func (node Node) getPositionKey() string {
+	return fmt.Sprintf("%d%d", node.X, node.Y)
+}
+
+type StringPositionInterface interface {
+	getPositionKey() string
+}
+
+type Searching struct {
+	ComeFrom       Enemy
+	Destination    Player
+	Path           *Node
+	VisitedPoints  map[string]Node
+	CheckingPoints map[string]Node
+	MinDistance    float64
+	CurrentNode    *Node
+}
+
+func (searching *Searching) setNearestPoint() bool {
+	var nearestNode Node
+	searching.CurrentNode = nil
+	for _, node := range searching.CheckingPoints {
+		if node.Distance <= searching.MinDistance {
+			nearestNode = node
+			break
+		}
+		if nearestNode.Distance == 0 || nearestNode.Distance > node.Distance {
+			nearestNode = node
+		}
+	}
+	searching.CurrentNode = &nearestNode
+
+	fmt.Println("----------------------")
+	fmt.Println("Ближайшая точка")
+	fmt.Println(searching.CurrentNode.getPositionKey(), ":", searching.CurrentNode.Distance)
+	fmt.Println("++++++++++++++++++++++")
+
+	searching.VisitedPoints[searching.CurrentNode.getPositionKey()] = searching.CheckingPoints[searching.CurrentNode.getPositionKey()]
+	delete(searching.CheckingPoints, searching.CurrentNode.getPositionKey())
+	if searching.CurrentNode == nil {
+		return false
+	}
+	return true
+}
+
+func (searching *Searching) Handle() Node {
+	searching.VisitedPoints = make(map[string]Node)
+	searching.CheckingPoints = make(map[string]Node)
+
+	node := Node{X: searching.ComeFrom.X, Y: searching.ComeFrom.Y, next: make(map[string]*Node)}
+	searching.VisitedPoints[searching.ComeFrom.getPositionKey()] = node
+	siblings := searching.getSiblings(node)
+	if len(siblings) > 0 {
+		for _, sibling := range siblings {
+			node.next[sibling.getPositionKey()] = &sibling
+			searching.CheckingPoints[sibling.getPositionKey()] = sibling
+		}
+	}
+
+	for searching.setNearestPoint() {
+		siblings := searching.getSiblings(*searching.CurrentNode)
+		if len(siblings) > 0 {
+			for _, sibling := range siblings {
+				if sibling.getPositionKey() == searching.Destination.getPositionKey() {
+					return sibling
+				}
+				fmt.Println(sibling.getPositionKey(), ":", sibling.Distance)
+
+				searching.CurrentNode.next[sibling.getPositionKey()] = &sibling
+				searching.CheckingPoints[sibling.getPositionKey()] = sibling
+			}
+		}
+		searching.VisitedPoints[searching.CurrentNode.getPositionKey()] = *searching.CurrentNode
+	}
+	return Node{}
+}
+
+func (searching *Searching) getSiblings(node Node) (siblings []Node) {
+	newSiblings := []Node{node.getLeftSibling(), node.getRightSibling(), node.getUpSibling(), node.getDownSibling()}
+	for _, sibling := range newSiblings {
+		if _, ok := searching.VisitedPoints[sibling.getPositionKey()]; !ok && sibling.X > 0 && sibling.Y > 0 && sibling.X < GameWidth && sibling.Y < GameHeight {
+			sibling.Back = &node
+			sibling.next = make(map[string]*Node)
+			sibling.Distance = math.Sqrt(math.Pow(float64(searching.Destination.X-sibling.X), 2) + math.Pow(float64(searching.Destination.Y-sibling.Y), 2))
+			if searching.MinDistance > sibling.Distance {
+				searching.MinDistance = sibling.Distance
+			}
+			siblings = append(siblings, sibling)
+		}
+	}
+	return
+}
+
+func (node Node) getLeftSibling() Node {
+	return Node{X: node.X - 1, Y: node.Y}
+}
+
+func (node Node) getRightSibling() Node {
+	return Node{X: node.X + 1, Y: node.Y}
+}
+
+func (node Node) getUpSibling() Node {
+	return Node{X: node.X, Y: node.Y - 1}
+}
+
+func (node Node) getDownSibling() Node {
+	return Node{X: node.X, Y: node.Y + 1}
+}
+
+func (node Node) GetPath() []Node {
+	var nodes []Node
+	nodes = append(nodes, Node{X: node.X, Y: node.Y})
+	for node.Back != nil {
+		node = *node.Back
+		nodes = append(nodes, Node{X: node.X, Y: node.Y})
+	}
+
+	return nodes
+}
+
+func (bullet *BulletGame) MoveBullet(game *Game, sessionId string) {
 	for i := 0; i < 10; i++ {
 		bullet.Bullet.X += bullet.XStep / 10
 		bullet.Bullet.Y += bullet.YStep / 10
@@ -156,10 +303,10 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 		xEnd := x + (PlayerWidth / 2)
 		yBegin := y - (PlayerHeight / 2)
 		yEnd := y + (PlayerHeight / 2)
-		if build.X < xBegin && build.Y < yBegin && build.X+build.Width > xBegin && build.Y+build.Height > yBegin {
+		if build.X+build.Width > xBegin && build.X < xBegin && build.Y < yBegin && build.Y+build.Height > yBegin {
 			return
 		}
-		if build.X < xEnd && build.Y < yEnd && build.X+build.Width > xEnd && build.Y+build.Height > yEnd {
+		if build.X+build.Width > xEnd && build.X < xEnd && build.Y < yEnd && build.Y+build.Height > yEnd {
 			return
 		}
 		if build.X+build.Width > xBegin && build.X < xBegin && build.Y < yEnd && build.Y+build.Height > yEnd {
@@ -184,6 +331,10 @@ type Player struct {
 	Hp          int    `json:"hp"`
 	MaxHp       int    `json:"maxHp"`
 	LatestShoot int64
+}
+
+func (player Player) getPositionKey() string {
+	return fmt.Sprintf("%d%d", player.X, player.Y)
 }
 
 type Build struct {

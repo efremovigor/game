@@ -49,7 +49,10 @@ type ConnectionReceiver struct {
 }
 
 func (receiver ConnectionReceiver) PushData(jsonObject interface{}) {
-	responseJson, _ := json.Marshal(jsonObject)
+	responseJson, err := json.Marshal(jsonObject)
+	if err != nil {
+		fmt.Println(err)
+	}
 	receiver.WriteChannel <- responseJson
 }
 
