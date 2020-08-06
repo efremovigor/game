@@ -150,10 +150,16 @@ func (searching *Searching) Handle() Node {
 	searching.CheckingPoints = make(map[string]Node)
 
 	node := Node{X: searching.ComeFrom.X, Y: searching.ComeFrom.Y, next: make(map[string]*Node)}
+	if node.getPositionKey() == searching.Destination.getPositionKey() {
+		return node
+	}
 	searching.VisitedPoints[searching.ComeFrom.getPositionKey()] = node
 	siblings := searching.getSiblings(node)
 	if len(siblings) > 0 {
 		for _, sibling := range siblings {
+			if sibling.getPositionKey() == searching.Destination.getPositionKey() {
+				return sibling
+			}
 			node.next[sibling.getPositionKey()] = &sibling
 			searching.CheckingPoints[sibling.getPositionKey()] = sibling
 		}

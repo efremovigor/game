@@ -73,7 +73,7 @@ func handleRequest(request lib.UserRequest) {
 		connections := game.Connection
 		connections[playerConnection.SessionId] = playerConnection
 
-		game.Builds = []lib.Build{lib.Build{X: 100, Y: 100, Width: 300, Height: 200, Type: 1}}
+		game.Builds = []lib.Build{lib.Build{X: 100, Y: 100, Width: 300, Height: 200, Type: 1}, lib.Build{X: 400, Y: 300, Width: 100, Height: 300, Type: 1}}
 		response := ResponseInfoState{Type: lib.SignalStartTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Builds: game.Builds}}
 		playerConnection.Connection.PushData(response)
 
