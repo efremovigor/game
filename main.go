@@ -124,10 +124,8 @@ func handleRequest(request lib.UserRequest) {
 
 			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
-					time.Sleep(3000 * time.Millisecond)
-					fmt.Println("ищем путь")
+					time.Sleep(1000 * time.Millisecond)
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
-					fmt.Println("путь найден")
 					newPath := searching.Handle()
 					enemy.Path = newPath.GetPath()
 				}
