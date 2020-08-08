@@ -66,6 +66,16 @@ type BulletGame struct {
 	YStep   float64
 	Deleted bool
 }
+type EnemyResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+	W     int    `json:"w"`
+	H     int    `json:"h"`
+	Hp    int    `json:"hp"`
+	MaxHp int    `json:"maxHp"`
+}
 
 type Enemy struct {
 	ID                  string `json:"id"`
@@ -78,7 +88,7 @@ type Enemy struct {
 	MaxHp               int    `json:"maxHp"`
 	Destination         Node
 	LatestConsideration int64
-	Path                []Node
+	Path                chan Node
 }
 
 func (enemy Enemy) getX() int {
@@ -130,11 +140,17 @@ type Searching struct {
 func (searching *Searching) setNearestPoint() bool {
 	var nearestNode Node
 	searching.CurrentNode = nil
+
+	if len(searching.CheckingPoints) == 0 {
+		return false
+	}
+
 	for _, node := range searching.CheckingPoints {
 		if nearestNode.Distance == 0 || nearestNode.Distance > node.Distance {
 			nearestNode = node
 		}
 	}
+
 	searching.CurrentNode = &nearestNode
 
 	searching.VisitedPoints[searching.CurrentNode.getPositionKey()] = searching.CheckingPoints[searching.CurrentNode.getPositionKey()]
@@ -142,23 +158,30 @@ func (searching *Searching) setNearestPoint() bool {
 	if searching.CurrentNode == nil {
 		return false
 	}
+
+	for _, build := range searching.Builds {
+		if build.CheckCollision(Enemy{X: searching.VisitedPoints[searching.CurrentNode.getPositionKey()].X, Y: searching.VisitedPoints[searching.CurrentNode.getPositionKey()].Y, W: searching.ComeFrom.W, H: searching.ComeFrom.H}) {
+			fmt.Println("ошибка ", searching.VisitedPoints[searching.CurrentNode.getPositionKey()])
+		}
+	}
+	searching.ComeFrom.Path <- searching.VisitedPoints[searching.CurrentNode.getPositionKey()]
 	return true
 }
 
-func (searching *Searching) Handle() Node {
+func (searching *Searching) Handle(player *PlayerConnection) {
 	searching.VisitedPoints = make(map[string]Node)
 	searching.CheckingPoints = make(map[string]Node)
 
 	node := Node{X: searching.ComeFrom.X, Y: searching.ComeFrom.Y, next: make(map[string]*Node)}
 	if node.getPositionKey() == searching.Destination.getPositionKey() {
-		return node
+		return
 	}
 	searching.VisitedPoints[searching.ComeFrom.getPositionKey()] = node
 	siblings := searching.getSiblings(node)
 	if len(siblings) > 0 {
 		for _, sibling := range siblings {
 			if sibling.getPositionKey() == searching.Destination.getPositionKey() {
-				return sibling
+				return
 			}
 			node.next[sibling.getPositionKey()] = &sibling
 			searching.CheckingPoints[sibling.getPositionKey()] = sibling
@@ -166,11 +189,14 @@ func (searching *Searching) Handle() Node {
 	}
 
 	for searching.setNearestPoint() {
+		if player.Player.X != searching.Destination.X || player.Player.Y != searching.Destination.Y {
+			return
+		}
 		siblings := searching.getSiblings(*searching.CurrentNode)
 		if len(siblings) > 0 {
 			for _, sibling := range siblings {
 				if sibling.getPositionKey() == searching.Destination.getPositionKey() {
-					return sibling
+					return
 				}
 				searching.CurrentNode.next[sibling.getPositionKey()] = &sibling
 				searching.CheckingPoints[sibling.getPositionKey()] = sibling
@@ -178,14 +204,13 @@ func (searching *Searching) Handle() Node {
 		}
 		searching.VisitedPoints[searching.CurrentNode.getPositionKey()] = *searching.CurrentNode
 	}
-	return Node{}
 }
 
 func (searching *Searching) getSiblings(node Node) (siblings []Node) {
 	newSiblings := []Node{node.getLeftSibling(), node.getRightSibling(), node.getUpSibling(), node.getDownSibling()}
 	for _, sibling := range newSiblings {
 		for _, build := range searching.Builds {
-			if build.checkCollision(Enemy{X: node.X, Y: node.Y, W: searching.ComeFrom.W, H: searching.ComeFrom.H}) {
+			if build.CheckCollision(Enemy{X: sibling.X, Y: sibling.Y, W: searching.ComeFrom.W, H: searching.ComeFrom.H}) {
 				searching.VisitedPoints[sibling.getPositionKey()] = sibling
 			}
 		}
@@ -213,18 +238,6 @@ func (node Node) getUpSibling() Node {
 
 func (node Node) getDownSibling() Node {
 	return Node{X: node.X, Y: node.Y + 1}
-}
-
-func (node Node) GetPath() []Node {
-	var nodes []Node
-	nodes = append(nodes, Node{X: node.X, Y: node.Y})
-	currentNode := node
-	for currentNode.Back != nil {
-		currentNode = *currentNode.Back
-		nodes = append(nodes, Node{X: currentNode.X, Y: currentNode.Y})
-	}
-
-	return nodes
 }
 
 func (bullet *BulletGame) MoveBullet(game *Game, sessionId string) {
@@ -313,7 +326,7 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 	}
 
 	for _, build := range game.Builds {
-		if build.checkCollision(Player{X: x, Y: y, W: playerConnection.Player.W, H: playerConnection.Player.H}) {
+		if build.CheckCollision(Player{X: x, Y: y, W: playerConnection.Player.W, H: playerConnection.Player.H}) {
 			return
 		}
 	}
@@ -329,7 +342,7 @@ type CollisionObjectInterface interface {
 	getH() int
 }
 
-func (build Build) checkCollision(object CollisionObjectInterface) bool {
+func (build Build) CheckCollision(object CollisionObjectInterface) bool {
 	xBegin := object.getX() - (object.getW() / 2)
 	xEnd := object.getX() + (object.getW() / 2)
 	yBegin := object.getY() - (object.getH() / 2)

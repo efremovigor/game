@@ -13,12 +13,12 @@ type ResponseInfoState struct {
 	Info ResponseInfoStateInfo `json:"info"`
 }
 type ResponseInfoStateInfo struct {
-	Player        lib.Player            `json:"player"`
-	Others        map[string]lib.Player `json:"others"`
-	PlayerBullets map[string]lib.Bullet `json:"bullets"`
-	OthersBullets map[string]lib.Bullet `json:"othersBullets"`
-	Builds        []lib.Build           `json:"builds"`
-	Enemies       map[string]lib.Enemy  `json:"enemies"`
+	Player        lib.Player                   `json:"player"`
+	Others        map[string]lib.Player        `json:"others"`
+	PlayerBullets map[string]lib.Bullet        `json:"bullets"`
+	OthersBullets map[string]lib.Bullet        `json:"othersBullets"`
+	Builds        []lib.Build                  `json:"builds"`
+	Enemies       map[string]lib.EnemyResponse `json:"enemies"`
 }
 
 type ResponseStartGameState struct {
@@ -84,7 +84,7 @@ func handleRequest(request lib.UserRequest) {
 				var others = make(map[string]lib.Player)
 				var bullets = make(map[string]lib.Bullet)
 				var othersBullets = make(map[string]lib.Bullet)
-				var enemies = make(map[string]lib.Enemy)
+				var enemies = make(map[string]lib.EnemyResponse)
 				connections := game.Connection
 				for key, connection := range connections {
 					if key == playerConnection.SessionId {
@@ -106,7 +106,7 @@ func handleRequest(request lib.UserRequest) {
 				}
 
 				for id, enemy := range game.Enemies {
-					enemies[string(id[:])] = *enemy
+					enemies[string(id[:])] = lib.EnemyResponse{X: enemy.X, Y: enemy.Y, W: enemy.W, H: enemy.H, ID: enemy.ID, Name: enemy.Name, Hp: enemy.Hp, MaxHp: enemy.MaxHp}
 				}
 
 				if len(game.Enemies) == 0 {
@@ -119,15 +119,13 @@ func handleRequest(request lib.UserRequest) {
 			}
 		}(playerConnection, game)
 		go func(playerConnection *lib.PlayerConnection, game *lib.Game) {
-			enemy := &lib.Enemy{X: 600, Y: 600, W: 10, H: 10, Hp: 100, MaxHp: 100, Path: []lib.Node{}}
+			enemy := &lib.Enemy{X: 600, Y: 600, W: 10, H: 10, Hp: 100, MaxHp: 100, Path: make(chan lib.Node, 5)}
 			game.Enemies[md5.Sum([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))] = enemy
 
 			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
-					time.Sleep(1000 * time.Millisecond)
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
-					newPath := searching.Handle()
-					enemy.Path = newPath.GetPath()
+					searching.Handle(playerConnection)
 				}
 			}(enemy, game)
 
@@ -135,11 +133,9 @@ func handleRequest(request lib.UserRequest) {
 				for {
 					time.Sleep(10 * time.Millisecond)
 					for i := 0; i < 3; i++ {
-						if len(enemy.Path) > 0 {
-							enemy.X = enemy.Path[len(enemy.Path)-1:][0].X
-							enemy.Y = enemy.Path[len(enemy.Path)-1:][0].Y
-							enemy.Path = enemy.Path[:len(enemy.Path)-1]
-						}
+						node := <-enemy.Path
+						enemy.X = node.X
+						enemy.Y = node.Y
 					}
 				}
 			}(enemy, game)
