@@ -64,6 +64,7 @@ function startGame() {
                 app.stage.on("pointermove", function (e) {
                     mousePosition.x = e.data.global.x;
                     mousePosition.y = e.data.global.y;
+                    console.log(mousePosition);
                 });
                 break;
             case "SIGNAL_LOBBY_LIST":

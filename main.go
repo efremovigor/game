@@ -66,14 +66,24 @@ func handleRequest(request lib.UserRequest) {
 		}
 		if game == nil {
 			connections := make(map[string]*lib.PlayerConnection)
-			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame), Enemies: make(map[[16]byte]*lib.Enemy)}
+			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame), Enemies: make(map[[16]byte]*lib.Enemy), CrucialPoints: make(map[string]lib.CrucialPoint), Builds: []lib.Build{}}
+			game.AddBuild(100, 100, 300, 200)
+			game.AddBuild(400, 300, 100, 300)
+			game.AddCrucialPoint(290, 337)
+			game.AddCrucialPoint(365, 415)
+			game.AddCrucialPoint(80, 320)
+			game.AddCrucialPoint(380, 620)
+			game.AddCrucialPoint(80, 80)
+			game.AddCrucialPoint(520, 620)
+			game.AddCrucialPoint(520, 270)
+			game.AddCrucialPoint(420, 80)
+			game.AddCrucialPoint(440, 260)
 			lib.UniGames[playerConnection.SessionId] = game
 		}
 		lib.Games[playerConnection.SessionId] = game
 		connections := game.Connection
 		connections[playerConnection.SessionId] = playerConnection
 
-		game.Builds = []lib.Build{lib.Build{X: 100, Y: 100, Width: 300, Height: 200, Type: 1}, lib.Build{X: 400, Y: 300, Width: 100, Height: 300, Type: 1}}
 		response := ResponseInfoState{Type: lib.SignalStartTheGame, Info: ResponseInfoStateInfo{Player: *playerConnection.Player, Builds: game.Builds}}
 		playerConnection.Connection.PushData(response)
 
@@ -124,6 +134,24 @@ func handleRequest(request lib.UserRequest) {
 
 			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
+					var nearestToEnemyPoint, nearestToPlayerPoint *lib.NearestCrucialPoint
+					player := &playerConnection.Player
+					for _, point := range game.CrucialPoints {
+						distanceToEnemy := lib.GetDistance(enemy, point)
+						if nearestToEnemyPoint == nil || nearestToEnemyPoint.Distance > distanceToEnemy {
+							nearestToEnemyPoint = &lib.NearestCrucialPoint{Distance: distanceToEnemy, CrucialPoint: point}
+						}
+						distanceToPlayer := lib.GetDistance(playerConnection.Player, point)
+						if nearestToPlayerPoint == nil || nearestToPlayerPoint.Distance > distanceToPlayer {
+							nearestToPlayerPoint = &lib.NearestCrucialPoint{Distance: distanceToPlayer, CrucialPoint: point}
+						}
+					}
+
+					for nearestToEnemyPoint.X != nearestToPlayerPoint.X && nearestToEnemyPoint.Y != nearestToPlayerPoint.Y && (*player).X == playerConnection.Player.X && (*player).Y == playerConnection.Player.Y {
+						//todo::process
+						break
+					}
+
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
 					searching.Handle(playerConnection)
 				}

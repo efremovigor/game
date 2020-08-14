@@ -49,13 +49,22 @@ type PlayerConnection struct {
 }
 
 type Game struct {
-	Connection map[string]*PlayerConnection
-	Bullets    map[string]map[[16]byte]*BulletGame
-	Enemies    map[[16]byte]*Enemy
-	Builds     []Build
-	Width      int
-	Height     int
-	Lock       sync.Mutex
+	Connection    map[string]*PlayerConnection
+	Bullets       map[string]map[[16]byte]*BulletGame
+	Enemies       map[[16]byte]*Enemy
+	Builds        []Build
+	CrucialPoints map[string]CrucialPoint
+	Width         int
+	Height        int
+	Lock          sync.Mutex
+}
+
+func (game *Game) AddCrucialPoint(x int, y int) {
+	game.CrucialPoints[fmt.Sprintf("%d-%d", x, y)] = CrucialPoint{X: x, Y: y}
+}
+
+func (game *Game) AddBuild(x int, y int, w int, h int) {
+	game.Builds = append(game.Builds, Build{X: x, Y: y, Width: w, Height: h, Type: 1})
 }
 
 type BulletGame struct {
@@ -117,6 +126,25 @@ type Node struct {
 	Distance float64
 	next     map[string]*Node
 	Back     *Node
+}
+
+type CrucialPoint struct {
+	X       int
+	Y       int
+	Sibling map[string]CrucialPoint
+}
+
+type NearestCrucialPoint struct {
+	CrucialPoint
+	Distance float64
+}
+
+func (point CrucialPoint) getX() int {
+	return point.X
+}
+
+func (point CrucialPoint) getY() int {
+	return point.Y
 }
 
 func (node Node) getPositionKey() string {
@@ -217,11 +245,23 @@ func (searching *Searching) getSiblings(node Node) (siblings []Node) {
 		if _, ok := searching.VisitedPoints[sibling.getPositionKey()]; !ok && sibling.X > 0 && sibling.Y > 0 && sibling.X < GameWidth && sibling.Y < GameHeight {
 			sibling.Back = &node
 			sibling.next = make(map[string]*Node)
-			sibling.Distance = math.Sqrt(math.Pow(float64(searching.Destination.X-sibling.X), 2) + math.Pow(float64(searching.Destination.Y-sibling.Y), 2))
+			sibling.Distance = GetDistance(searching.Destination, sibling)
 			siblings = append(siblings, sibling)
 		}
 	}
 	return
+}
+
+func GetDistance(dest CoordinateInterface, target CoordinateInterface) float64 {
+	return math.Sqrt(math.Pow(float64(dest.getX()-target.getX()), 2) + math.Pow(float64(dest.getY()-target.getY()), 2))
+}
+
+func (node Node) getX() int {
+	return node.X
+}
+
+func (node Node) getY() int {
+	return node.Y
 }
 
 func (node Node) getLeftSibling() Node {
@@ -248,7 +288,7 @@ func (bullet *BulletGame) MoveBullet(game *Game, sessionId string) {
 			bullet.Deleted = true
 		} else {
 			for _, player := range game.Connection {
-				distance := math.Sqrt(math.Pow(bullet.Bullet.Y-float64(player.Player.Y), 2) + math.Pow(bullet.Bullet.X-float64(player.Player.X), 2))
+				distance := GetDistance(bullet.Bullet, player.Player)
 				if distance < 15 && bullet.Deleted == false && sessionId != player.SessionId {
 					bullet.Deleted = true
 					player.Player.Hp -= 10
@@ -335,9 +375,13 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 	playerConnection.Player.Y = y
 }
 
-type CollisionObjectInterface interface {
+type CoordinateInterface interface {
 	getX() int
 	getY() int
+}
+
+type CollisionObjectInterface interface {
+	CoordinateInterface
 	getW() int
 	getH() int
 }
@@ -372,6 +416,14 @@ type Player struct {
 	Hp          int    `json:"hp"`
 	MaxHp       int    `json:"maxHp"`
 	LatestShoot int64
+}
+
+func (bullet Bullet) getX() int {
+	return int(bullet.X)
+}
+
+func (bullet Bullet) getY() int {
+	return int(bullet.Y)
 }
 
 func (player Player) getX() int {
