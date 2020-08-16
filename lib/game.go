@@ -65,13 +65,13 @@ func (game *Game) GetCrucialPoint(x int, y int) CrucialPoint {
 }
 
 func (game *Game) AddCrucialPoint(x int, y int) {
-	point := CrucialPoint{X: x, Y: y, Sibling: make(map[string]*CrucialPoint)}
+	point := CrucialPoint{X: x, Y: y, Sibling: make(map[string]CrucialPoint)}
 	game.CrucialPoints[point.GetKey()] = point
 }
 
 func (game *Game) AddSiblingToCrucialPoint(point CrucialPoint, siblings ...CrucialPoint) {
 	for _, sibling := range siblings {
-		game.CrucialPoints[point.GetKey()].Sibling[sibling.GetKey()] = &sibling
+		game.CrucialPoints[point.GetKey()].Sibling[sibling.GetKey()] = sibling
 		distance := GetDistance(point, sibling)
 		game.CrucialPointsDistance[fmt.Sprintf("%s|%s", point.GetKey(), sibling.GetKey())] = distance
 		game.CrucialPointsDistance[fmt.Sprintf("%s|%s", sibling.GetKey(), point.GetKey())] = distance
@@ -150,7 +150,7 @@ type Node struct {
 type CrucialPoint struct {
 	X       int
 	Y       int
-	Sibling map[string]*CrucialPoint
+	Sibling map[string]CrucialPoint
 }
 
 type NearestCrucialPoint struct {
@@ -162,7 +162,7 @@ type PathCrucialPoint struct {
 	X        int
 	Y        int
 	Distance float64
-	Sibling  map[string]*PathCrucialPoint
+	Sibling  map[string]PathCrucialPoint
 }
 
 func (point CrucialPoint) getX() int {

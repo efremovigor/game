@@ -160,7 +160,7 @@ func handleRequest(request lib.UserRequest) {
 					visitedPoints := make(map[string]lib.PathCrucialPoint)
 					checkingPoints := make(map[string]lib.PathCrucialPoint)
 
-					path := lib.PathCrucialPoint{X: nearestToEnemyPoint.X, Y: nearestToEnemyPoint.Y, Sibling: make(map[string]*lib.PathCrucialPoint)}
+					path := lib.PathCrucialPoint{X: nearestToEnemyPoint.X, Y: nearestToEnemyPoint.Y, Sibling: make(map[string]lib.PathCrucialPoint)}
 
 					visitedPoints[nearestToEnemyPoint.GetKey()] = path
 					//for nearestToEnemyPoint.X != nearestToPlayerPoint.X && nearestToEnemyPoint.Y != nearestToPlayerPoint.Y && (*player).X == playerConnection.Player.X && (*player).Y == playerConnection.Player.Y {
@@ -170,9 +170,11 @@ func handleRequest(request lib.UserRequest) {
 								//todo::arrived
 								return
 							}
-							point := &lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(*sibling, path), Sibling: make(map[string]*lib.PathCrucialPoint)}
+							point := lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(sibling, path), Sibling: make(map[string]lib.PathCrucialPoint)}
+							fmt.Println("Добаляем точку в чекинг лист ", point.GetKey(), " На основе точки", sibling.GetKey())
 							path.Sibling[sibling.GetKey()] = point
-							checkingPoints[sibling.GetKey()] = *point
+							checkingPoints[sibling.GetKey()] = point
+							fmt.Println("Все точки в поиске", checkingPoints)
 						}
 					}
 					//}
@@ -188,14 +190,14 @@ func handleRequest(request lib.UserRequest) {
 							//todo::arrived
 							return
 						}
-						for _, sibling := range pointWithMinimalDistance.Sibling {
+						for _, sibling := range game.CrucialPoints[pointWithMinimalDistance.GetKey()].Sibling {
 							if nearestToPlayerPoint.GetKey() == sibling.GetKey() {
 								//todo::arrived
 								return
 							}
-							point := &lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(*sibling, path), Sibling: make(map[string]*lib.PathCrucialPoint)}
+							point := lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(sibling, path), Sibling: make(map[string]lib.PathCrucialPoint)}
 							path.Sibling[sibling.GetKey()] = point
-							checkingPoints[sibling.GetKey()] = *point
+							checkingPoints[sibling.GetKey()] = point
 						}
 						delete(checkingPoints, pointWithMinimalDistance.GetKey())
 					}
@@ -269,7 +271,7 @@ func getPlayConnection(request lib.UserRequest) *lib.PlayerConnection {
 func main() {
 	lib.RequestChan = make(chan lib.UserRequest)
 
-	fmt.Print("Listening to 127.0.0.1:3000")
+	fmt.Println("Listening to 127.0.0.1:3000")
 	go lib.RunServer("127.0.0.1:3000", lib.RequestChan)
 	for {
 		select {
