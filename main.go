@@ -201,7 +201,7 @@ func handleRequest(request lib.UserRequest) {
 						}
 						delete(checkingPoints, pointWithMinimalDistance.GetKey())
 					}
-
+					//asdasdasd
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
 					searching.Handle(playerConnection)
 				}
