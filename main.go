@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"game/env"
 	"game/lib"
 	"strings"
 	"time"
@@ -193,8 +194,8 @@ func getPlayConnection(request lib.UserRequest) *lib.PlayerConnection {
 func main() {
 	lib.RequestChan = make(chan lib.UserRequest)
 
-	fmt.Print("Listening to 127.0.0.1:3000")
-	go lib.RunServer("127.0.0.1:3000", lib.RequestChan)
+	fmt.Print("Listening to " + env.GetEnvVariable("APP_SOCKET"))
+	go lib.RunServer(env.GetEnvVariable("APP_SOCKET"), lib.RequestChan)
 	for {
 		select {
 		case request := <-lib.RequestChan:

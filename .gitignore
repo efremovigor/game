@@ -3,8 +3,6 @@
 
 # log files
 *.log
-
-
 *.out
 
 # session status files
@@ -15,3 +13,6 @@ node_modules/
 static/**/*.pug.js
 package-lock.json
 static/js/bundle.js
+
+.env
+main
