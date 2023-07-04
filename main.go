@@ -151,7 +151,6 @@ func handleRequest(request lib.UserRequest) {
 						//todo::process
 						break
 					}
-					//asdasdasd
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
 					searching.Handle(playerConnection)
 				}
