@@ -1,6 +1,12 @@
 # Пример игры
 
-Backend на Go - Igor Efremov
+Сетевая игра на Go, все вычисления на бекенде, поддерживает лобби
+
+# Demo
+
+![](demo.gif)
+
+![](network_demo.gif)
 
 ## How to run
 
