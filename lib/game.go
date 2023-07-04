@@ -49,37 +49,18 @@ type PlayerConnection struct {
 }
 
 type Game struct {
-	Connection            map[string]*PlayerConnection
-	Bullets               map[string]map[[16]byte]*BulletGame
-	Enemies               map[[16]byte]*Enemy
-	Builds                []Build
-	CrucialPoints         map[string]CrucialPoint
-	CrucialPointsDistance map[string]float64
-	Width                 int
-	Height                int
-	Lock                  sync.Mutex
-}
-
-func (game *Game) GetCrucialPoint(x int, y int) CrucialPoint {
-	return game.CrucialPoints[CrucialPoint{X: x, Y: y}.GetKey()]
+	Connection    map[string]*PlayerConnection
+	Bullets       map[string]map[[16]byte]*BulletGame
+	Enemies       map[[16]byte]*Enemy
+	Builds        []Build
+	CrucialPoints map[string]CrucialPoint
+	Width         int
+	Height        int
+	Lock          sync.Mutex
 }
 
 func (game *Game) AddCrucialPoint(x int, y int) {
-	point := CrucialPoint{X: x, Y: y, Sibling: make(map[string]*CrucialPoint)}
-	game.CrucialPoints[point.GetKey()] = point
-}
-
-func (game *Game) AddSiblingToCrucialPoint(point CrucialPoint, siblings ...CrucialPoint) {
-	for _, sibling := range siblings {
-		game.CrucialPoints[point.GetKey()].Sibling[sibling.GetKey()] = &sibling
-		distance := GetDistance(point, sibling)
-		game.CrucialPointsDistance[fmt.Sprintf("%s|%s", point.GetKey(), sibling.GetKey())] = distance
-		game.CrucialPointsDistance[fmt.Sprintf("%s|%s", sibling.GetKey(), point.GetKey())] = distance
-	}
-}
-
-func (game *Game) GetDistance(point1 CoordinateKeyInterface, point2 CoordinateKeyInterface) float64 {
-	return game.CrucialPointsDistance[fmt.Sprintf("%s|%s", point1.GetKey(), point2.GetKey())]
+	game.CrucialPoints[fmt.Sprintf("%d-%d", x, y)] = CrucialPoint{X: x, Y: y}
 }
 
 func (game *Game) AddBuild(x int, y int, w int, h int) {
@@ -150,19 +131,12 @@ type Node struct {
 type CrucialPoint struct {
 	X       int
 	Y       int
-	Sibling map[string]*CrucialPoint
+	Sibling map[string]CrucialPoint
 }
 
 type NearestCrucialPoint struct {
 	CrucialPoint
 	Distance float64
-}
-
-type PathCrucialPoint struct {
-	X        int
-	Y        int
-	Distance float64
-	Sibling  map[string]*PathCrucialPoint
 }
 
 func (point CrucialPoint) getX() int {
@@ -171,14 +145,6 @@ func (point CrucialPoint) getX() int {
 
 func (point CrucialPoint) getY() int {
 	return point.Y
-}
-
-func (point CrucialPoint) GetKey() string {
-	return fmt.Sprintf("%d-%d", point.X, point.Y)
-}
-
-func (point PathCrucialPoint) GetKey() string {
-	return fmt.Sprintf("%d-%d", point.X, point.Y)
 }
 
 func (node Node) getPositionKey() string {
@@ -412,10 +378,6 @@ func (playerConnection *PlayerConnection) Move(game *Game, command string) {
 type CoordinateInterface interface {
 	getX() int
 	getY() int
-}
-
-type CoordinateKeyInterface interface {
-	GetKey() string
 }
 
 type CollisionObjectInterface interface {

@@ -66,29 +66,18 @@ func handleRequest(request lib.UserRequest) {
 		}
 		if game == nil {
 			connections := make(map[string]*lib.PlayerConnection)
-			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame), Enemies: make(map[[16]byte]*lib.Enemy), CrucialPoints: make(map[string]lib.CrucialPoint), CrucialPointsDistance: make(map[string]float64), Builds: []lib.Build{}}
+			game = &lib.Game{Connection: connections, Width: lib.GameWidth, Height: lib.GameHeight, Bullets: make(map[string]map[[16]byte]*lib.BulletGame), Enemies: make(map[[16]byte]*lib.Enemy), CrucialPoints: make(map[string]lib.CrucialPoint), Builds: []lib.Build{}}
 			game.AddBuild(100, 100, 300, 200)
 			game.AddBuild(400, 300, 100, 300)
-			game.AddCrucialPoint(290, 320)
+			game.AddCrucialPoint(290, 337)
 			game.AddCrucialPoint(365, 415)
 			game.AddCrucialPoint(80, 320)
-			game.AddCrucialPoint(365, 620)
+			game.AddCrucialPoint(380, 620)
 			game.AddCrucialPoint(80, 80)
 			game.AddCrucialPoint(520, 620)
 			game.AddCrucialPoint(520, 270)
 			game.AddCrucialPoint(420, 80)
-			game.AddCrucialPoint(420, 270)
-
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(290, 320), game.GetCrucialPoint(365, 415), game.GetCrucialPoint(80, 320), game.GetCrucialPoint(365, 620))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(365, 415), game.GetCrucialPoint(290, 320), game.GetCrucialPoint(80, 320), game.GetCrucialPoint(365, 620))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(80, 320), game.GetCrucialPoint(290, 320), game.GetCrucialPoint(365, 415), game.GetCrucialPoint(365, 620), game.GetCrucialPoint(80, 80))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(365, 620), game.GetCrucialPoint(80, 320), game.GetCrucialPoint(290, 320), game.GetCrucialPoint(365, 415), game.GetCrucialPoint(520, 620))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(80, 80), game.GetCrucialPoint(80, 320), game.GetCrucialPoint(420, 80))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(520, 620), game.GetCrucialPoint(365, 620), game.GetCrucialPoint(520, 270))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(420, 80), game.GetCrucialPoint(80, 80), game.GetCrucialPoint(420, 270), game.GetCrucialPoint(520, 270))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(520, 270), game.GetCrucialPoint(520, 620), game.GetCrucialPoint(420, 270), game.GetCrucialPoint(420, 80))
-			game.AddSiblingToCrucialPoint(game.GetCrucialPoint(420, 270), game.GetCrucialPoint(520, 270), game.GetCrucialPoint(420, 80))
-
+			game.AddCrucialPoint(440, 260)
 			lib.UniGames[playerConnection.SessionId] = game
 		}
 		lib.Games[playerConnection.SessionId] = game
@@ -146,7 +135,7 @@ func handleRequest(request lib.UserRequest) {
 			go func(enemy *lib.Enemy, game *lib.Game) {
 				for {
 					var nearestToEnemyPoint, nearestToPlayerPoint *lib.NearestCrucialPoint
-					//player := &playerConnection.Player
+					player := &playerConnection.Player
 					for _, point := range game.CrucialPoints {
 						distanceToEnemy := lib.GetDistance(enemy, point)
 						if nearestToEnemyPoint == nil || nearestToEnemyPoint.Distance > distanceToEnemy {
@@ -157,47 +146,10 @@ func handleRequest(request lib.UserRequest) {
 							nearestToPlayerPoint = &lib.NearestCrucialPoint{Distance: distanceToPlayer, CrucialPoint: point}
 						}
 					}
-					visitedPoints := make(map[string]lib.PathCrucialPoint)
-					checkingPoints := make(map[string]lib.PathCrucialPoint)
 
-					path := lib.PathCrucialPoint{X: nearestToEnemyPoint.X, Y: nearestToEnemyPoint.Y, Sibling: make(map[string]*lib.PathCrucialPoint)}
-
-					visitedPoints[nearestToEnemyPoint.GetKey()] = path
-					//for nearestToEnemyPoint.X != nearestToPlayerPoint.X && nearestToEnemyPoint.Y != nearestToPlayerPoint.Y && (*player).X == playerConnection.Player.X && (*player).Y == playerConnection.Player.Y {
-					if len(nearestToEnemyPoint.Sibling) > 0 {
-						for _, sibling := range nearestToEnemyPoint.Sibling {
-							if nearestToPlayerPoint.GetKey() == sibling.GetKey() {
-								//todo::arrived
-								return
-							}
-							point := &lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(*sibling, path), Sibling: make(map[string]*lib.PathCrucialPoint)}
-							path.Sibling[sibling.GetKey()] = point
-							checkingPoints[sibling.GetKey()] = *point
-						}
-					}
-					//}
-					for len(checkingPoints) > 0 {
-						var pointWithMinimalDistance *lib.PathCrucialPoint
-						for _, point := range checkingPoints {
-							if pointWithMinimalDistance == nil || point.Distance < pointWithMinimalDistance.Distance {
-								pointWithMinimalDistance = &point
-							}
-						}
-						visitedPoints[pointWithMinimalDistance.GetKey()] = *pointWithMinimalDistance
-						if nearestToPlayerPoint.GetKey() == pointWithMinimalDistance.GetKey() {
-							//todo::arrived
-							return
-						}
-						for _, sibling := range pointWithMinimalDistance.Sibling {
-							if nearestToPlayerPoint.GetKey() == sibling.GetKey() {
-								//todo::arrived
-								return
-							}
-							point := &lib.PathCrucialPoint{X: sibling.X, Y: sibling.Y, Distance: path.Distance + game.GetDistance(*sibling, path), Sibling: make(map[string]*lib.PathCrucialPoint)}
-							path.Sibling[sibling.GetKey()] = point
-							checkingPoints[sibling.GetKey()] = *point
-						}
-						delete(checkingPoints, pointWithMinimalDistance.GetKey())
+					for nearestToEnemyPoint.X != nearestToPlayerPoint.X && nearestToEnemyPoint.Y != nearestToPlayerPoint.Y && (*player).X == playerConnection.Player.X && (*player).Y == playerConnection.Player.Y {
+						//todo::process
+						break
 					}
 					//asdasdasd
 					searching := lib.Searching{ComeFrom: *enemy, Destination: *playerConnection.Player, Builds: game.Builds}
