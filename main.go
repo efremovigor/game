@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"game/lib"
 	"strings"
 	"time"
-	"try-to-game/lib"
 )
 
 type ResponseInfoState struct {
